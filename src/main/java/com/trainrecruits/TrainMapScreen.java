@@ -50,11 +50,16 @@ public class TrainMapScreen extends Screen {
     private int refreshTimer;
 
     // recruit panel (right side)
-    private static final int PANEL_W = 200;
     private static final int ROW_H = 11;
+
+    /** Panel width adapts to small screens (large GUI scale). */
+    private int panelW() {
+        return Math.min(200, Math.max(110, width / 3));
+    }
     private record Row(RecruitEntry entry, String label) {}
     private final List<Row> rows = new ArrayList<>();
     private int panelScroll;
+    private int hudBottom = 44;
     private Button addFreeBtn;
     private Button clearBtn;
 
@@ -85,9 +90,9 @@ public class TrainMapScreen extends Screen {
             builtVersion = -1;
         }
 
-        int bw = 100;
-        int gap = 4;
+        int gap = 2;
         int n = 5;
+        int bw = Math.max(40, Math.min(100, (width - 8 - (n - 1) * gap) / n));
         int x0 = (width - (n * bw + (n - 1) * gap)) / 2;
         int y = height - 26;
         addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.center"),
@@ -100,11 +105,11 @@ public class TrainMapScreen extends Screen {
                 b -> stationOrder(Net.ACTION_TRIGGER)).bounds(x0 + 3 * (bw + gap), y, bw, 20).build());
         autoBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.auto"),
                 b -> stationOrder(Net.ACTION_TOGGLE_AUTO)).bounds(x0 + 4 * (bw + gap), y, bw, 20).build());
-        int px = width - PANEL_W - 6;
+        int px = width - panelW() - 6;
         addFreeBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.add_free"),
-                b -> bulkAssign(Net.ASSIGN_ALL_FREE)).bounds(px, height - 56, PANEL_W / 2 - 2, 20).build());
+                b -> bulkAssign(Net.ASSIGN_ALL_FREE)).bounds(px, height - 56, panelW() / 2 - 2, 20).build());
         clearBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.clear_squad"),
-                b -> bulkAssign(Net.ASSIGN_CLEAR)).bounds(px + PANEL_W / 2 + 2, height - 56, PANEL_W / 2 - 2, 20).build());
+                b -> bulkAssign(Net.ASSIGN_CLEAR)).bounds(px + panelW() / 2 + 2, height - 56, panelW() / 2 - 2, 20).build());
         refreshTimer = 0;
     }
 
@@ -116,11 +121,11 @@ public class TrainMapScreen extends Screen {
     }
 
     private int panelX() {
-        return width - PANEL_W - 6;
+        return width - panelW() - 6;
     }
 
     private int panelTop() {
-        return 44;
+        return Math.max(hudBottom + 4, 30);
     }
 
     private int panelBottom() {
@@ -400,9 +405,7 @@ public class TrainMapScreen extends Screen {
             g.fill(px - 2, py - 2, px + 2, py + 2, 0xFF55FF55);
         }
 
-        // HUD
-        g.fill(4, 4, Math.min(width - 4, 440), 38, 0x99000000);
-        g.drawString(font, Component.translatable("gui.trainrecruits.map.help"), 8, 8, 0xFFDDDDDD);
+        // HUD (wrapped so it never runs off the screen)
         SquadEntry squad = selectedSquad();
         Component info;
         if (squad != null) {
@@ -413,7 +416,20 @@ public class TrainMapScreen extends Screen {
         } else {
             info = Component.translatable("gui.trainrecruits.map.select_hint");
         }
-        g.drawString(font, info, 8, 22, 0xFFFFFF88);
+        int hudW = width - 8;
+        List<net.minecraft.util.FormattedCharSequence> help =
+                font.split(Component.translatable("gui.trainrecruits.map.help"), hudW - 8);
+        List<net.minecraft.util.FormattedCharSequence> infoLines = font.split(info, hudW - 8);
+        int hudLines = Math.min(help.size(), 2) + Math.min(infoLines.size(), 2);
+        g.fill(4, 4, 4 + hudW, 8 + hudLines * 10, 0x99000000);
+        int hy = 6;
+        for (int i = 0; i < Math.min(help.size(), 2); i++, hy += 10) {
+            g.drawString(font, help.get(i), 8, hy, 0xFFDDDDDD);
+        }
+        for (int i = 0; i < Math.min(infoLines.size(), 2); i++, hy += 10) {
+            g.drawString(font, infoLines.get(i), 8, hy, 0xFFFFFF88);
+        }
+        hudBottom = 8 + hudLines * 10;
 
         renderPanel(g, squad);
 
@@ -426,12 +442,12 @@ public class TrainMapScreen extends Screen {
         int bottom = panelBottom();
         g.fill(x, top, width - 6, bottom, 0xCC000000);
         long free = rows.stream().filter(r -> !r.entry().assigned()).count();
-        g.drawString(font, Component.translatable("gui.trainrecruits.map.panel_title", rows.size(), free),
+        g.drawString(font, font.plainSubstrByWidth(Component.translatable("gui.trainrecruits.map.panel_title", rows.size(), free).getString(), panelW() - 8),
                 x + 4, top + 4, 0xFFFFFFFF);
         Component sub = squad != null
                 ? Component.translatable("gui.trainrecruits.map.panel_for", squad.name())
                 : Component.translatable("gui.trainrecruits.map.panel_select");
-        g.drawString(font, sub, x + 4, top + 15, squad != null ? 0xFFFFFF88 : 0xFFAAAAAA);
+        g.drawString(font, font.plainSubstrByWidth(sub.getString(), panelW() - 8), x + 4, top + 15, squad != null ? 0xFFFFFF88 : 0xFFAAAAAA);
 
         int y = panelRowsTop();
         int shown = 0;
@@ -450,14 +466,15 @@ public class TrainMapScreen extends Screen {
                 color = 0xFF7A8CA8;
                 prefix = "> ";
             }
-            String text = font.plainSubstrByWidth(prefix + row.label(), PANEL_W - 10);
+            String text = font.plainSubstrByWidth(prefix + row.label(), panelW() - 10);
             g.drawString(font, text, x + 4, y, color);
             y += ROW_H;
         }
         if (rows.isEmpty()) {
             g.drawString(font, Component.translatable("gui.trainrecruits.map.panel_empty"), x + 4, panelRowsTop(), 0xFFAAAAAA);
         }
-        g.drawString(font, Component.translatable("gui.trainrecruits.map.panel_legend"), x + 4, bottom - 10, 0xFF888888);
+        g.drawString(font, font.plainSubstrByWidth(Component.translatable("gui.trainrecruits.map.panel_legend").getString(), panelW() - 8),
+                x + 4, bottom - 10, 0xFF888888);
     }
 
     // ------------------------------------------------------------------ input

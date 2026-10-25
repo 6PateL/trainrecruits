@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "redstone",
+  "pattern": ["IRI", "RER", "IRI"],
+  "key": {
+    "I": { "item": "minecraft:iron_ingot" },
+    "R": { "item": "minecraft:rail" },
+    "E": { "item": "minecraft:redstone" }
+  },
+  "result": { "item": "trainrecruits:disembark_station" }
+}

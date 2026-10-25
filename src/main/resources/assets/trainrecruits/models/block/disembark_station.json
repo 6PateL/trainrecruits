@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "trainrecruits:block/disembark_station_top",
+    "side": "trainrecruits:block/disembark_station_side",
+    "bottom": "trainrecruits:block/station_bottom"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "powered=false": { "model": "trainrecruits:block/disembark_station" },
+    "powered=true":  { "model": "trainrecruits:block/disembark_station_on" }
+  }
+}

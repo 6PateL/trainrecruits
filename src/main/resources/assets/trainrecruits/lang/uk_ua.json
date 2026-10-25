@@ -6,7 +6,7 @@
   "msg.trainrecruits.auto_off": "Авто-режим: ВИМК.",
   "msg.trainrecruits.board_start": "Команда на посадку: загін іде до потяга.",
   "msg.trainrecruits.board_done": "Посадку завершено: сіло %s.",
-  "msg.trainrecruits.board_full": "Потяг повний: сіло %s, решта лишається.",
+  "msg.trainrecruits.board_full": "Місць не вистачає для всіх: ніхто не сідає, усі стоять.",
   "msg.trainrecruits.board_timeout": "Час посадки вийшов: сіло %s.",
   "msg.trainrecruits.board_nobody": "Нікого садити (поруч немає ваших рекрутів).",
   "msg.trainrecruits.disembarked": "Висаджено: %s.",

@@ -6,7 +6,7 @@
   "msg.trainrecruits.auto_off": "Auto mode: OFF",
   "msg.trainrecruits.board_start": "Boarding call: your squad heads for the train.",
   "msg.trainrecruits.board_done": "Boarding complete: %s seated.",
-  "msg.trainrecruits.board_full": "Train is full: %s seated, the rest stay behind.",
+  "msg.trainrecruits.board_full": "Not enough seats for everyone: nobody boards, all stay put.",
   "msg.trainrecruits.board_timeout": "Boarding call timed out: %s seated.",
   "msg.trainrecruits.board_nobody": "Nobody to board (no recruits of yours nearby).",
   "msg.trainrecruits.disembarked": "Disembarked: %s.",

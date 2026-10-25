@@ -136,6 +136,11 @@ public final class TrainSeating {
         int pending = 0;
         int unassigned = 0;
 
+        // All-or-nothing: if the carriages cannot take everybody, nobody boards (everyone just stands).
+        if (!candidates.isEmpty() && !trains.isEmpty() && slots.size() < candidates.size()) {
+            return new Step(0, 0, candidates.size(), true);
+        }
+
         for (AbstractRecruitEntity r : candidates) {
             if (slots.isEmpty()) {
                 unassigned++;
@@ -225,10 +230,20 @@ public final class TrainSeating {
         }
 
         // Which riders belong to us: owned directly, or members of an owned commander's squad that rides along.
-        Set<UUID> squad = new HashSet<>();
+        List<AbstractRecruitEntity> all = new ArrayList<>();
         for (AbstractContraptionEntity train : trains) {
             for (Entity p : train.getPassengers()) {
-                if (p instanceof AbstractLeaderEntity leader && owner.equals(leader.getOwnerUUID()) && leader.army != null) {
+                if (p instanceof AbstractRecruitEntity r) {
+                    all.add(r);
+                }
+            }
+        }
+        Set<UUID> ownedCommanders = new HashSet<>();
+        Set<UUID> squad = new HashSet<>();
+        for (AbstractRecruitEntity r : all) {
+            if (owner.equals(r.getOwnerUUID())) {
+                ownedCommanders.add(r.getUUID());
+                if (r instanceof AbstractLeaderEntity leader && leader.army != null) {
                     for (AbstractRecruitEntity u : leader.army.getAllRecruitUnits()) {
                         if (u != null) {
                             squad.add(u.getUUID());
@@ -237,13 +252,12 @@ public final class TrainSeating {
                 }
             }
         }
-
         List<AbstractRecruitEntity> riders = new ArrayList<>();
-        for (AbstractContraptionEntity train : trains) {
-            for (Entity p : train.getPassengers()) {
-                if (p instanceof AbstractRecruitEntity r && (owner.equals(r.getOwnerUUID()) || squad.contains(r.getUUID()))) {
-                    riders.add(r);
-                }
+        for (AbstractRecruitEntity r : all) {
+            UUID cmd = Commanders.squadOf(r);
+            if (owner.equals(r.getOwnerUUID()) || squad.contains(r.getUUID())
+                    || (cmd != null && ownedCommanders.contains(cmd))) {
+                riders.add(r);
             }
         }
         if (riders.isEmpty()) {

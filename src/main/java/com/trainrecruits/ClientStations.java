@@ -7,6 +7,7 @@ public final class ClientStations {
     private static volatile List<StationEntry> stations = List.of();
     private static volatile List<SquadEntry> squads = List.of();
     private static volatile List<RecruitEntry> recruits = List.of();
+    private static volatile List<CrewEntry> crews = List.of();
 
     private ClientStations() {}
 
@@ -32,5 +33,13 @@ public final class ClientStations {
 
     public static List<RecruitEntry> getRecruits() {
         return recruits;
+    }
+
+    public static void setCrews(List<CrewEntry> list) {
+        crews = List.copyOf(list);
+    }
+
+    public static List<CrewEntry> getCrews() {
+        return crews;
     }
 }

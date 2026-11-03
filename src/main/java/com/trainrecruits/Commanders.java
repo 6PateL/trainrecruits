@@ -89,7 +89,7 @@ public final class Commanders {
         Net.sendSquads(player);
     }
 
-    private static Item currency() {
+    static Item currency() {
         Item item = null;
         try {
             ResourceLocation id = ResourceLocation.tryParse(RecruitsServerConfig.RecruitCurrency.get());
@@ -102,7 +102,7 @@ public final class Commanders {
         return item == null || item == Items.AIR ? Items.EMERALD : item;
     }
 
-    private static boolean pay(ServerPlayer player, int amount) {
+    static boolean pay(ServerPlayer player, int amount) {
         if (player.isCreative()) {
             return true;
         }

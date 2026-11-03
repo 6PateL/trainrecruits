@@ -2,6 +2,8 @@ package com.trainrecruits;
 
 import com.talhanation.recruits.entities.AbstractRecruitEntity;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.npc.Villager;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
@@ -16,14 +18,31 @@ public final class CommonEvents {
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getHand() != InteractionHand.MAIN_HAND
                 || !(event.getItemStack().getItem() instanceof BatonItem)
-                || !(event.getTarget() instanceof AbstractRecruitEntity recruit)) {
+                || !(event.getTarget() instanceof AbstractRecruitEntity || event.getTarget() instanceof Villager)) {
             return;
         }
+        if (event.getTarget() instanceof Villager villager) {
+            // baton on an ordinary villager: mobilise / release an artillery crew (own faction's villagers only)
+            event.setCanceled(true);
+            event.setCancellationResult(InteractionResult.SUCCESS);
+            if (!event.getLevel().isClientSide && event.getEntity() instanceof ServerPlayer player) {
+                Gunners.toggle(player, villager);
+            }
+            return;
+        }
+        AbstractRecruitEntity recruit = (AbstractRecruitEntity) event.getTarget();
         // Do not open the recruit's own GUI when using the baton on him
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
         if (!event.getLevel().isClientSide && event.getEntity() instanceof ServerPlayer player) {
             Commanders.toggle(player, recruit);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onJoin(EntityJoinLevelEvent event) {
+        if (!event.getLevel().isClientSide && event.getEntity() instanceof Villager v && Gunners.isGunner(v)) {
+            Gunners.attachGoal(v);
         }
     }
 }

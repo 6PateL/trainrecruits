@@ -45,6 +45,7 @@ public class TrainMapScreen extends Screen {
     private double pressY;
 
     private UUID selSquad;
+    private UUID selCrew;
     private BlockPos selStation;
     private BlockPos lastTarget;
     private int refreshTimer;
@@ -67,6 +68,8 @@ public class TrainMapScreen extends Screen {
     private Button followBtn;
     private Button stationBtn;
     private Button autoBtn;
+    private Button crewAutoBtn;
+    private Button crewStopBtn;
 
     public TrainMapScreen() {
         super(Component.translatable("gui.trainrecruits.map.title"));
@@ -105,6 +108,11 @@ public class TrainMapScreen extends Screen {
                 b -> stationOrder(Net.ACTION_TRIGGER)).bounds(x0 + 3 * (bw + gap), y, bw, 20).build());
         autoBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.auto"),
                 b -> stationOrder(Net.ACTION_TOGGLE_AUTO)).bounds(x0 + 4 * (bw + gap), y, bw, 20).build());
+        int cw = Math.max(60, Math.min(110, bw + 20));
+        crewAutoBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.crew_auto"),
+                b -> crewOrder(Gunners.ORDER_TOGGLE_AUTO)).bounds(x0, y - 22, cw, 20).build());
+        crewStopBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.crew_stop"),
+                b -> crewOrder(Gunners.ORDER_STOP)).bounds(x0 + cw + gap, y - 22, cw, 20).build());
         int px = width - panelW() - 6;
         addFreeBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.add_free"),
                 b -> bulkAssign(Net.ASSIGN_ALL_FREE)).bounds(px, height - 56, panelW() / 2 - 2, 20).build());
@@ -250,6 +258,25 @@ public class TrainMapScreen extends Screen {
         }
     }
 
+    private CrewEntry selectedCrew() {
+        if (selCrew == null) {
+            return null;
+        }
+        for (CrewEntry c : ClientStations.getCrews()) {
+            if (c.id().equals(selCrew)) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    private void crewOrder(byte action) {
+        if (selCrew != null) {
+            Net.CHANNEL.sendToServer(new Net.CrewCommand(selCrew, action, BlockPos.ZERO));
+            refreshTimer = 5;
+        }
+    }
+
     private void stationOrder(byte action) {
         if (selStation != null) {
             Net.CHANNEL.sendToServer(new Net.StationAction(selStation, action));
@@ -275,6 +302,11 @@ public class TrainMapScreen extends Screen {
         followBtn.active = squad != null;
         stationBtn.active = station != null;
         autoBtn.active = station != null;
+        CrewEntry crew = selectedCrew();
+        crewAutoBtn.active = crew != null;
+        crewStopBtn.active = crew != null;
+        crewAutoBtn.setMessage(Component.translatable(crew != null && crew.auto()
+                ? "gui.trainrecruits.map.crew_auto_on" : "gui.trainrecruits.map.crew_auto"));
         if (station != null) {
             stationBtn.setMessage(Component.translatable(station.boarding()
                     ? "gui.trainrecruits.map.station_board" : "gui.trainrecruits.map.station_disembark"));
@@ -390,6 +422,22 @@ public class TrainMapScreen extends Screen {
             g.drawCenteredString(font, label, cx, cy - 18, sel ? 0xFFFFFF55 : 0xFFFFFFFF);
         }
 
+        // artillery crews: purple diamond
+        for (CrewEntry c : ClientStations.getCrews()) {
+            if (!c.dim().equals(dim)) {
+                continue;
+            }
+            int cx = (int) toScreenX(c.x());
+            int cy = (int) toScreenY(c.z());
+            boolean sel = c.id().equals(selCrew);
+            int color = c.hasGun() ? 0xFFB040FF : 0xFF7A4C9A;
+            drawDiamond(g, cx, cy, 8, sel ? 0xFFFFFF55 : 0xFF000000);
+            drawDiamond(g, cx, cy, 6, c.state() == CrewEntry.FIRING ? 0xFFFF70FF : color);
+            g.drawCenteredString(font, "A", cx, cy - 4, 0xFFFFFFFF);
+            String label = c.name() + (c.auto() ? " *" : "");
+            g.drawCenteredString(font, label, cx, cy - 18, sel ? 0xFFFFFF55 : 0xFFE0C0FF);
+        }
+
         // last order marker
         if (lastTarget != null) {
             g.drawCenteredString(font, "x", (int) toScreenX(lastTarget.getX() + 0.5D),
@@ -408,7 +456,11 @@ public class TrainMapScreen extends Screen {
         // HUD (wrapped so it never runs off the screen)
         SquadEntry squad = selectedSquad();
         Component info;
-        if (squad != null) {
+        CrewEntry crewSel = selectedCrew();
+        if (crewSel != null) {
+            info = Component.translatable(crewSel.hasGun() ? "gui.trainrecruits.map.selected_crew"
+                    : "gui.trainrecruits.map.selected_crew_nogun", crewSel.name());
+        } else if (squad != null) {
             info = Component.translatable("gui.trainrecruits.map.selected_squad", squad.name(), squad.size(),
                     Mth.floor(squad.x()), Mth.floor(squad.z()));
         } else if (ClientStations.getSquads().isEmpty()) {
@@ -434,6 +486,13 @@ public class TrainMapScreen extends Screen {
         renderPanel(g, squad);
 
         super.render(g, mouseX, mouseY, partialTick);
+    }
+
+    private static void drawDiamond(GuiGraphics g, int cx, int cy, int r, int color) {
+        for (int dy = -r; dy <= r; dy++) {
+            int w = r - Math.abs(dy);
+            g.fill(cx - w, cy + dy, cx + w + 1, cy + dy + 1, color);
+        }
     }
 
     private void renderPanel(GuiGraphics g, SquadEntry squad) {
@@ -582,6 +641,26 @@ public class TrainMapScreen extends Screen {
             selStation = bestStation.pos();
             return;
         }
+        // artillery crews
+        CrewEntry bestCrew = null;
+        best = 12.0D * 12.0D;
+        for (CrewEntry c : ClientStations.getCrews()) {
+            if (!c.dim().equals(dim)) {
+                continue;
+            }
+            double dx = toScreenX(c.x()) - mx;
+            double dy = toScreenY(c.z()) - my;
+            double d = dx * dx + dy * dy;
+            if (d <= best) {
+                best = d;
+                bestCrew = c;
+            }
+        }
+        if (bestCrew != null) {
+            selCrew = bestCrew.id();
+            selSquad = null;
+            return;
+        }
         // then squads
         SquadEntry bestSquad = null;
         best = 12.0D * 12.0D;
@@ -599,6 +678,17 @@ public class TrainMapScreen extends Screen {
         }
         if (bestSquad != null) {
             selSquad = bestSquad.id();
+            selCrew = null;
+            return;
+        }
+        // ground with a crew selected: it shells that point
+        if (selCrew != null && selectedCrew() != null) {
+            Minecraft mc = Minecraft.getInstance();
+            int y = mc.player != null ? Mth.floor(mc.player.getY()) : 64;
+            BlockPos target = new BlockPos(Mth.floor(toWorldX(mx)), y, Mth.floor(toWorldZ(my)));
+            lastTarget = target;
+            Net.CHANNEL.sendToServer(new Net.CrewCommand(selCrew, Gunners.ORDER_FIRE, target));
+            refreshTimer = 5;
             return;
         }
         // ground: order the selected squad to go there

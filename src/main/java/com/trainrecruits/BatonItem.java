@@ -19,5 +19,6 @@ public class BatonItem extends Item {
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         tooltip.add(Component.translatable("item.trainrecruits.commander_baton.desc1"));
         tooltip.add(Component.translatable("item.trainrecruits.commander_baton.desc2"));
+        tooltip.add(Component.translatable("item.trainrecruits.commander_baton.desc3"));
     }
 }

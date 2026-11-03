@@ -52,6 +52,8 @@ public final class Net {
         CHANNEL.registerMessage(id++, SquadCommand.class, SquadCommand::encode, SquadCommand::decode, SquadCommand::handle);
         CHANNEL.registerMessage(id++, RecruitList.class, RecruitList::encode, RecruitList::decode, RecruitList::handle);
         CHANNEL.registerMessage(id++, SquadAssign.class, SquadAssign::encode, SquadAssign::decode, SquadAssign::handle);
+        CHANNEL.registerMessage(id++, CrewList.class, CrewList::encode, CrewList::decode, CrewList::handle);
+        CHANNEL.registerMessage(id++, CrewCommand.class, CrewCommand::encode, CrewCommand::decode, CrewCommand::handle);
     }
 
     public static void sendSquads(ServerPlayer player) {
@@ -60,10 +62,16 @@ public final class Net {
         List<RecruitEntry> recruits = new ArrayList<>();
         Map<UUID, Integer> counts = new HashMap<>();
         java.util.Set<UUID> commanderIds = new java.util.HashSet<>();
+        List<CrewEntry> crews = new ArrayList<>();
 
         for (ServerLevel level : player.server.getAllLevels()) {
             String dim = level.dimension().location().toString();
             for (Entity e : level.getAllEntities()) {
+                if (e instanceof net.minecraft.world.entity.npc.Villager vg && vg.isAlive() && Gunners.isGunner(vg)
+                        && player.getUUID().equals(Gunners.owner(vg))) {
+                    crews.add(Gunners.entry(vg, dim));
+                    continue;
+                }
                 if (e instanceof AbstractRecruitEntity r && r.isAlive() && player.getUUID().equals(r.getOwnerUUID())
                         && Commanders.isCommander(r)) {
                     commanders.add(r);
@@ -103,6 +111,7 @@ public final class Net {
         }
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SquadList(squads));
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new RecruitList(recruits));
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new CrewList(crews));
     }
 
     public static void sendList(ServerPlayer player) {
@@ -357,6 +366,55 @@ public final class Net {
                     default -> { }
                 }
                 sendSquads(player);
+            });
+            c.setPacketHandled(true);
+        }
+    }
+
+    // ---------------------------------------------------------------- artillery crews
+    public record CrewList(List<CrewEntry> crews) {
+        static void encode(CrewList m, FriendlyByteBuf buf) {
+            buf.writeVarInt(m.crews.size());
+            for (CrewEntry e : m.crews) {
+                e.write(buf);
+            }
+        }
+
+        static CrewList decode(FriendlyByteBuf buf) {
+            int n = buf.readVarInt();
+            List<CrewEntry> list = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                list.add(CrewEntry.read(buf));
+            }
+            return new CrewList(list);
+        }
+
+        static void handle(CrewList m, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientStations.setCrews(m.crews)));
+            c.setPacketHandled(true);
+        }
+    }
+
+    /** Order for an artillery crew: fire at a point / stop / toggle automatic targeting. */
+    public record CrewCommand(UUID crew, byte action, BlockPos pos) {
+        static void encode(CrewCommand m, FriendlyByteBuf buf) {
+            buf.writeUUID(m.crew);
+            buf.writeByte(m.action);
+            buf.writeBlockPos(m.pos);
+        }
+
+        static CrewCommand decode(FriendlyByteBuf buf) {
+            return new CrewCommand(buf.readUUID(), buf.readByte(), buf.readBlockPos());
+        }
+
+        static void handle(CrewCommand m, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> {
+                ServerPlayer player = c.getSender();
+                if (player != null) {
+                    Gunners.order(player, m.crew, m.action, m.pos);
+                }
             });
             c.setPacketHandled(true);
         }

@@ -36,3 +36,17 @@ Place a Boarding Station next to a stopped train, a Disembark Station at the des
     versionRange="[1.15.2,)"
     ordering="AFTER"
     side="BOTH"
+
+[[dependencies.trainrecruits]]
+    modId="createbigcannons"
+    mandatory=false
+    versionRange="[5.0,)"
+    ordering="AFTER"
+    side="BOTH"
+
+[[dependencies.trainrecruits]]
+    modId="recruitsvillages"
+    mandatory=false
+    versionRange="[1.0,)"
+    ordering="AFTER"
+    side="BOTH"

@@ -12,6 +12,7 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 @Mod(TrainRecruits.MODID)
 public class TrainRecruits {
     public static final String MODID = "trainrecruits";
+    public static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
 
     public TrainRecruits() {
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();

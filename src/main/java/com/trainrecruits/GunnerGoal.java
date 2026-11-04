@@ -21,7 +21,8 @@ import java.util.UUID;
  */
 public class GunnerGoal extends Goal {
     private final Villager v;
-    private final Cbc.Aim aim = new Cbc.Aim();
+    private Cbc.Aim aim = new Cbc.Aim();
+    private BlockPos lastGun;
     private int t;
     private int cooldown;
     private long nextScan;
@@ -67,8 +68,10 @@ public class GunnerGoal extends Goal {
         }
 
         BlockPos mount = d.contains(Gunners.MOUNT) ? BlockPos.of(d.getLong(Gunners.MOUNT)) : null;
-        if (mount != null && level.isLoaded(mount) && !Cbc.isUsableMount(level.getBlockEntity(mount))) {
-            d.remove(Gunners.MOUNT); // the gun was dismantled
+        boolean post = mount != null && Battery.isPost(level, mount);
+        if (mount != null && level.isLoaded(mount)
+                && !(post ? Battery.postReady(level, mount) : Cbc.isUsableMount(level.getBlockEntity(mount)))) {
+            d.remove(Gunners.MOUNT); // the gun was dismantled / the post is not complete
             mount = null;
         }
         if (mount == null) {
@@ -76,7 +79,7 @@ public class GunnerGoal extends Goal {
             if (t % 100 == 0) {
                 BlockPos m = Cbc.nearestMount(level, v.blockPosition(), TrainConfig.GUN_BIND_RADIUS.get());
                 if (m != null) {
-                    d.putLong(Gunners.MOUNT, m.asLong());
+                    d.putLong(Gunners.MOUNT, Battery.bindTarget(level, m).asLong());
                 }
             }
             return;
@@ -121,7 +124,17 @@ public class GunnerGoal extends Goal {
             return;
         }
 
-        Cbc.Result r = Cbc.aim(level, mount, target, aim);
+        BlockPos gun = post ? Battery.pick(level, mount, target) : mount;
+        if (gun == null) {
+            clearTarget(d);
+            state(CrewEntry.IDLE);
+            return;
+        }
+        if (!gun.equals(lastGun)) {
+            lastGun = gun;
+            aim = new Cbc.Aim();
+        }
+        Cbc.Result r = Cbc.aim(level, gun, target, aim);
         if (!r.feasible()) {
             UUID oid = Gunners.owner(v);
             ServerPlayer owner = oid == null ? null : level.getServer().getPlayerList().getPlayer(oid);
@@ -134,7 +147,7 @@ public class GunnerGoal extends Goal {
         }
         state(CrewEntry.AIMING);
         if (r.aligned() && cooldown == 0) {
-            if (Cbc.fire(level, mount)) {
+            if (Cbc.fire(level, gun)) {
                 v.swing(InteractionHand.MAIN_HAND);
                 cooldown = TrainConfig.GUN_RELOAD_SECONDS.get() * 20;
                 int left = d.getInt(Gunners.SHOTS) - 1;

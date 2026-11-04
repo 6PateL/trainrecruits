@@ -26,6 +26,7 @@ public class TrainRecruits {
         if (event.getTabKey() == CreativeModeTabs.REDSTONE_BLOCKS) {
             event.accept(ModRegistry.BOARDING_STATION_ITEM.get());
             event.accept(ModRegistry.DISEMBARK_STATION_ITEM.get());
+            event.accept(ModRegistry.ARTILLERY_POST_ITEM.get());
         }
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModRegistry.COMMANDER_BATON.get());

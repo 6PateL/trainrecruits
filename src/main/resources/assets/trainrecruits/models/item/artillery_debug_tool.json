@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/handheld",
   "textures": {
-    "layer0": "trainrecruits:item/commander_baton"
+    "layer0": "trainrecruits:item/artillery_debug_tool"
   }
 }

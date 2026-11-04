@@ -1,7 +1,6 @@
 package com.trainrecruits;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,8 +23,7 @@ public class ArtilleryDebugItem extends Item {
             return InteractionResult.SUCCESS;
         }
         BlockPos base = ctx.getClickedPos().relative(ctx.getClickedFace());
-        Direction f = player.getDirection();
-        BlockPos mount = Battery.build(level, base, f);
+        BlockPos mount = Battery.buildPost(level, base);
         if (mount == null) {
             player.displayClientMessage(Component.translatable("msg.trainrecruits.debug_battery_fail"), true);
             return InteractionResult.FAIL;

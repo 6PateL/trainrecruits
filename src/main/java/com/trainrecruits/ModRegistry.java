@@ -32,6 +32,11 @@ public class ModRegistry {
     public static final RegistryObject<Block> DISEMBARK_STATION =
             BLOCKS.register("disembark_station", () -> new StationBlock(false, props()));
 
+    public static final RegistryObject<Block> ARTILLERY_POST =
+            BLOCKS.register("artillery_post", () -> new Block(props()));
+    public static final RegistryObject<Item> ARTILLERY_POST_ITEM =
+            ITEMS.register("artillery_post", () -> new BlockItem(ARTILLERY_POST.get(), new Item.Properties()));
+
     public static final RegistryObject<Item> BOARDING_STATION_ITEM =
             ITEMS.register("boarding_station", () -> new BlockItem(BOARDING_STATION.get(), new Item.Properties()));
     public static final RegistryObject<Item> DISEMBARK_STATION_ITEM =

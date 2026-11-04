@@ -49,29 +49,33 @@ final class Battery {
         return s;
     }
 
-    /** Is there room for the gun: mount at base, cannon line above it along f. */
-    private static boolean fits(ServerLevel level, BlockPos base, Direction f) {
+    static final Direction[] SIDES = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
+
+    static boolean isPost(ServerLevel level, BlockPos p) {
+        return level.isLoaded(p) && level.getBlockState(p).is(ModRegistry.ARTILLERY_POST.get());
+    }
+
+    /** Is there room for one gun: mount at base, cannon line above it along f. */
+    private static boolean fitsGun(ServerLevel level, BlockPos base, Direction f) {
         if (!level.hasChunkAt(base) || !level.getBlockState(base.below()).isSolid()) return false;
         if (!level.getBlockState(base).canBeReplaced() || !level.getFluidState(base).isEmpty()) return false;
         for (int i = 0; i < PARTS.length; i++) {
             BlockPos p = base.above().relative(f, i);
             if (!level.hasChunkAt(p) || !level.getBlockState(p).canBeReplaced() || !level.getFluidState(p).isEmpty()) return false;
-            if (!level.getBlockState(p.above()).canBeReplaced()) return false;
         }
         return true;
     }
 
-    /** Builds and assembles a gun with its mount at {@code base}, muzzle towards f. Returns the mount position or null. */
-    static BlockPos build(ServerLevel level, BlockPos base, Direction f) {
-        if (!Cbc.available()) return null;
+    /** Places and assembles one gun (mount at base, muzzle towards f). Assembly problems are logged; the blocks stay. */
+    private static boolean buildGun(ServerLevel level, BlockPos base, Direction f) {
         Block mount = block("cannon_mount");
-        if (mount == null || !fits(level, base, f)) return null;
+        if (mount == null) return false;
         Block[] parts = new Block[PARTS.length];
         for (int i = 0; i < PARTS.length; i++) {
             parts[i] = block(PARTS[i]);
             if (parts[i] == null) {
                 TrainRecruits.LOGGER.warn("[artillery] no block createbigcannons:{}", PARTS[i]);
-                return null;
+                return false;
             }
         }
         level.setBlock(base, mount.defaultBlockState(), 3);
@@ -79,7 +83,7 @@ final class Battery {
             level.setBlock(base.above().relative(f, i), faced(parts[i], f), 3);
         }
         BlockEntity be = level.getBlockEntity(base);
-        if (be == null) return null;
+        if (be == null) return false;
         try {
             Method m = null;
             for (Class<?> k = be.getClass(); k != null && m == null; k = k.getSuperclass()) {
@@ -89,14 +93,81 @@ final class Battery {
                     // superclass
                 }
             }
-            if (m == null) return null;
+            if (m == null) return false;
             m.setAccessible(true);
             m.invoke(be);
         } catch (Throwable t) {
             TrainRecruits.LOGGER.warn("[artillery] could not assemble the gun at {}: {}", base, String.valueOf(t.getCause() != null ? t.getCause() : t));
-            return null;
+            return false;
         }
-        return Cbc.isUsableMount(level.getBlockEntity(base)) ? base : null;
+        return true;
+    }
+
+    /**
+     * Builds an artillery post: the post block in the middle and four guns around it, muzzles to N/E/S/W.
+     * The crew stands on top of the post and works all four. Returns the post position or null.
+     */
+    static BlockPos buildPost(ServerLevel level, BlockPos post) {
+        if (!Cbc.available() || block("cannon_mount") == null) return null;
+        if (!level.hasChunkAt(post) || !level.getBlockState(post.below()).isSolid()
+                || !level.getBlockState(post).canBeReplaced() || !level.getBlockState(post.above()).canBeReplaced()) return null;
+        for (Direction d : SIDES) {
+            if (!fitsGun(level, post.relative(d), d)) return null;
+        }
+        level.setBlock(post, ModRegistry.ARTILLERY_POST.get().defaultBlockState(), 3);
+        int ok = 0;
+        for (Direction d : SIDES) {
+            if (buildGun(level, post.relative(d), d)) ok++;
+        }
+        TrainRecruits.LOGGER.info("[artillery] post at {}: {}/4 guns placed", post, ok);
+        return ok == 4 ? post : null;
+    }
+
+    /** The four guns around a post that are assembled and usable (null entries for missing ones). */
+    static BlockPos[] gunsOf(ServerLevel level, BlockPos post) {
+        BlockPos[] out = new BlockPos[4];
+        for (int i = 0; i < 4; i++) {
+            BlockPos m = post.relative(SIDES[i]);
+            out[i] = Cbc.isUsableMount(level.getBlockEntity(m)) ? m : null;
+        }
+        return out;
+    }
+
+    /** A post works only when it is built right: all four guns assembled around it. */
+    static boolean postReady(ServerLevel level, BlockPos post) {
+        if (!isPost(level, post)) return false;
+        for (BlockPos g : gunsOf(level, post)) {
+            if (g == null) return false;
+        }
+        return true;
+    }
+
+    /** The gun of the post whose side points best at the target (horizontally). */
+    static BlockPos pick(ServerLevel level, BlockPos post, net.minecraft.world.phys.Vec3 target) {
+        BlockPos[] guns = gunsOf(level, post);
+        double dx = target.x - (post.getX() + 0.5D);
+        double dz = target.z - (post.getZ() + 0.5D);
+        double len = Math.sqrt(dx * dx + dz * dz);
+        if (len < 1.0E-3D) return null;
+        BlockPos best = null;
+        double bd = -2.0D;
+        for (int i = 0; i < 4; i++) {
+            if (guns[i] == null) continue;
+            double dot = (SIDES[i].getStepX() * dx + SIDES[i].getStepZ() * dz) / len;
+            if (dot > bd) {
+                bd = dot;
+                best = guns[i];
+            }
+        }
+        return best;
+    }
+
+    /** If the mount belongs to a post (adjacent post block), the crew binds to the post instead of the single gun. */
+    static BlockPos bindTarget(ServerLevel level, BlockPos mount) {
+        for (Direction d : SIDES) {
+            if (isPost(level, mount.relative(d))) return mount.relative(d);
+        }
+        return mount;
     }
 
     /** Makes the villager the crew of the gun (village crew: no player owner, shells what the village is at war with). */
@@ -107,7 +178,7 @@ final class Battery {
         d.putLong(Gunners.MOUNT, mount.asLong());
         d.putBoolean(Gunners.AUTO, true);
         if (v.position().distanceToSqr(mount.getX() + 0.5D, mount.getY(), mount.getZ() + 0.5D) > 64.0D) {
-            v.teleportTo(mount.getX() + 1.5D, mount.getY(), mount.getZ() + 0.5D);
+            v.teleportTo(mount.getX() + 0.5D, mount.getY() + 1.0D, mount.getZ() + 0.5D);
         }
         if (v.getCustomName() == null) {
             v.setCustomName(Component.literal("[A] " + v.getName().getString()));
@@ -156,7 +227,7 @@ final class Battery {
                 if (mount != null) {
                     if (crewNear(level, mount, id) == null) {
                         Villager v = freeVillager(level, mount, id);
-                        if (v != null) assignCrew(level, v, mount, id);
+                        if (v != null) assignCrew(level, v, bindTarget(level, mount), id);
                     }
                     continue;
                 }
@@ -170,11 +241,10 @@ final class Battery {
                     int z = c.getZ() + level.random.nextInt(25) - 12;
                     if (!level.hasChunkAt(new BlockPos(x, 64, z))) continue;
                     BlockPos base = new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
-                    Direction f2 = Direction.Plane.HORIZONTAL.getRandomDirection(level.random);
-                    BlockPos built = build(level, base, f2);
+                    BlockPos built = buildPost(level, base);
                     if (built != null) {
                         assignCrew(level, crew, built, id);
-                        TrainRecruits.LOGGER.info("[artillery] village {} built a gun at {}", id, built);
+                        TrainRecruits.LOGGER.info("[artillery] village {} built an artillery post at {}", id, built);
                         break;
                     }
                 }

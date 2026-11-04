@@ -146,7 +146,7 @@ public final class Gunners {
                         player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_no_gun"), true);
                         return;
                     }
-                    d.putLong(MOUNT, m.asLong());
+                    d.putLong(MOUNT, Battery.bindTarget(level, m).asLong());
                 }
                 BlockPos mount = BlockPos.of(d.getLong(MOUNT));
                 double dist = Math.sqrt(mount.distSqr(new BlockPos(pos.getX(), mount.getY(), pos.getZ())));

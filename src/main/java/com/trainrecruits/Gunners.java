@@ -99,6 +99,11 @@ public final class Gunners {
             player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_no_cbc"), true);
             return;
         }
+        BlockPos post = Battery.postNear(level, v.blockPosition(), 16);
+        if (post == null || !Battery.postReady(level, post)) {
+            player.displayClientMessage(Component.translatable("msg.trainrecruits.post_incomplete"), true);
+            return;
+        }
         int cost = TrainConfig.GUNNER_COST.get();
         if (cost > 0 && !Commanders.pay(player, cost)) {
             player.displayClientMessage(Component.translatable("msg.trainrecruits.promote_need", cost,
@@ -108,6 +113,7 @@ public final class Gunners {
         CompoundTag d = v.getPersistentData();
         d.putBoolean(TAG, true);
         d.putUUID(OWNER, player.getUUID());
+        d.putLong(MOUNT, post.asLong());
         d.putBoolean(AUTO, TrainConfig.GUN_AUTO.get());
         Component custom = v.getCustomName();
         String base = custom != null ? custom.getString() : v.getName().getString();
@@ -214,14 +220,15 @@ public final class Gunners {
         if (TrainConfig.GUN_AUTO_BARBARIANS.get()) {
             cands.addAll(barbarians(level));
         }
+        addHostileMobs(level, mount, cands, max);
         cands.sort(Comparator.comparingDouble(p -> horizontal(p, mount)));
         int checked = 0;
         for (BlockPos p : cands) {
             double d = Math.sqrt(horizontal(p, mount));
-            if (d < min || d > max || !level.hasChunkAt(p)) {
+            if (d < Math.min(min, MOB_MIN_RANGE) || d > max || !level.hasChunkAt(p)) {
                 continue;
             }
-            if (++checked > 12) {
+            if (++checked > 30) {
                 break;
             }
             if (friendlyNear(level, owner, p)) {
@@ -230,6 +237,21 @@ public final class Gunners {
             return p;
         }
         return null;
+    }
+
+    private static final int MOB_MIN_RANGE = 12;
+
+    /** Hostile monsters (not recruits) in range: groups are targeted by their nearest member, outside the minimum range. */
+    private static void addHostileMobs(ServerLevel level, BlockPos mount, List<BlockPos> cands, int max) {
+        AABB box = new AABB(mount).inflate(max, 64, max);
+        for (LivingEntity m : level.getEntitiesOfClass(LivingEntity.class, box, x -> x instanceof net.minecraft.world.entity.monster.Enemy
+                && x.isAlive() && !x.getClass().getName().startsWith("com.talhanation.recruits.")
+                && !x.getClass().getName().startsWith("com.diego.recruitsvillages."))) {
+            if (Math.sqrt(horizontal(m.blockPosition(), mount)) >= MOB_MIN_RANGE) {
+                cands.add(m.blockPosition());
+            }
+            if (cands.size() > 200) break;
+        }
     }
 
     /** Targets for a village's own crew: factions at war with the village, infection nests, barbarian settlements. */
@@ -245,14 +267,15 @@ public final class Gunners {
             cands.add(e.blockPosition());
         }
         cands.addAll(barbarians(level));
+        addHostileMobs(level, mount, cands, max);
         cands.sort(Comparator.comparingDouble(p -> horizontal(p, mount)));
         int checked = 0;
         for (BlockPos p : cands) {
             double d = Math.sqrt(horizontal(p, mount));
-            if (d < min || d > max || !level.hasChunkAt(p)) {
+            if (d < Math.min(min, MOB_MIN_RANGE) || d > max || !level.hasChunkAt(p)) {
                 continue;
             }
-            if (++checked > 12) {
+            if (++checked > 30) {
                 break;
             }
             if (!villagersNear(level, factionId, p)) {
@@ -263,7 +286,7 @@ public final class Gunners {
     }
 
     private static boolean villagersNear(ServerLevel level, UUID factionId, BlockPos p) {
-        int r = TrainConfig.GUN_FRIENDLY_CLEARANCE.get();
+        int r = Math.min(TrainConfig.GUN_FRIENDLY_CLEARANCE.get(), 12);
         if (r <= 0) {
             return false;
         }

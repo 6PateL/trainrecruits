@@ -123,6 +123,21 @@ final class Battery {
         return ok == 4 ? post : null;
     }
 
+    /** Nearest artillery post block within r blocks (null if none): prefers a complete one. */
+    static BlockPos postNear(ServerLevel level, BlockPos near, int r) {
+        BlockPos best = null;
+        double bd = Double.MAX_VALUE;
+        for (BlockPos p : BlockPos.betweenClosed(near.offset(-r, -4, -r), near.offset(r, 4, r))) {
+            if (!isPost(level, p)) continue;
+            double d = p.distSqr(near) - (postReady(level, p) ? 100000 : 0);
+            if (d < bd) {
+                bd = d;
+                best = p.immutable();
+            }
+        }
+        return best;
+    }
+
     /** The four guns around a post that are assembled and usable (null entries for missing ones). */
     static BlockPos[] gunsOf(ServerLevel level, BlockPos post) {
         BlockPos[] out = new BlockPos[4];

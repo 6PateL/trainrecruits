@@ -136,6 +136,9 @@ public class GunnerGoal extends Goal {
         }
         Cbc.Result r = Cbc.aim(level, gun, target, aim);
         if (!r.feasible()) {
+            if (level.getGameTime() % 100 == 0) {
+                TrainRecruits.LOGGER.info("[artillery] crew {} cannot hit {}: {}", v.getId(), target, r.reason());
+            }
             UUID oid = Gunners.owner(v);
             ServerPlayer owner = oid == null ? null : level.getServer().getPlayerList().getPlayer(oid);
             if (owner != null && !d.getBoolean(Gunners.AUTO)) {

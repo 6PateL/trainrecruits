@@ -73,5 +73,6 @@
   "msg.trainrecruits.debug_battery_fail": "Could not build a gun here (no room, or Create Big Cannons is missing).",
   "msg.trainrecruits.debug_battery_nocrew": "The gun is built but there is no faction villager nearby.",
   "block.trainrecruits.artillery_post": "Artillery Post",
-  "msg.trainrecruits.post_incomplete": "The post is incomplete: it needs 4 assembled guns around it, muzzles pointing in all four directions."
+  "msg.trainrecruits.post_incomplete": "The post is incomplete: it needs 4 assembled guns around it, muzzles pointing in all four directions.",
+  "msg.trainrecruits.post_ready": "The post is ready: 4 guns. Use the baton on a villager nearby to assign a crew."
 }

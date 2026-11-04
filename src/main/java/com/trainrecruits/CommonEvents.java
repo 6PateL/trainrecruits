@@ -40,6 +40,24 @@ public final class CommonEvents {
     }
 
     @SubscribeEvent
+    public static void onPostClick(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getHand() != InteractionHand.MAIN_HAND || !(event.getItemStack().getItem() instanceof BatonItem)
+                || !(event.getLevel() instanceof net.minecraft.server.level.ServerLevel level)
+                || !Battery.isPost(level, event.getPos())) {
+            return;
+        }
+        event.setCanceled(true);
+        event.setCancellationResult(InteractionResult.SUCCESS);
+        int n = 0;
+        for (net.minecraft.core.BlockPos g : Battery.gunsOf(level, event.getPos())) {
+            if (g != null) n++;
+        }
+        event.getEntity().displayClientMessage(n == 4
+                ? net.minecraft.network.chat.Component.translatable("msg.trainrecruits.post_ready")
+                : net.minecraft.network.chat.Component.translatable("msg.trainrecruits.post_incomplete").append(" (" + n + "/4)"), true);
+    }
+
+    @SubscribeEvent
     public static void onServerTick(net.minecraftforge.event.TickEvent.ServerTickEvent event) {
         if (event.phase == net.minecraftforge.event.TickEvent.Phase.END && event.getServer().getTickCount() % 600 == 0) {
             Battery.tick(event.getServer());

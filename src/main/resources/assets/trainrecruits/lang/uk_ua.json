@@ -67,5 +67,9 @@
   "msg.trainrecruits.crew_auto_on": "Розрахунок сам вибирає цілі.",
   "msg.trainrecruits.crew_auto_off": "Автоматичні цілі вимкнено.",
   "msg.trainrecruits.crew_unreachable": "Розрахунок не може влучити в цю точку (поза зоною або ховає рельєф).",
-  "item.trainrecruits.commander_baton.desc3": "ПКМ по жителю свого рекрутерського поселення — мобілізувати в артилерійський розрахунок (гармата Big Cannons)."
+  "item.trainrecruits.commander_baton.desc3": "ПКМ по жителю свого рекрутерського поселення — мобілізувати в артилерійський розрахунок (гармата Big Cannons).",
+  "item.trainrecruits.artillery_debug_tool": "Дебаг-тул артилерії",
+  "msg.trainrecruits.debug_battery_ok": "Гармата збудована, розрахунок із жителя фракції на місці.",
+  "msg.trainrecruits.debug_battery_fail": "Тут не вийшло збудувати гармату (мало місця або нема Create Big Cannons).",
+  "msg.trainrecruits.debug_battery_nocrew": "Гармата є, але жителя фракції поруч нема."
 }

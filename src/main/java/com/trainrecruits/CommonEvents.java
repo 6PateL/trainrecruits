@@ -40,6 +40,13 @@ public final class CommonEvents {
     }
 
     @SubscribeEvent
+    public static void onServerTick(net.minecraftforge.event.TickEvent.ServerTickEvent event) {
+        if (event.phase == net.minecraftforge.event.TickEvent.Phase.END && event.getServer().getTickCount() % 600 == 0) {
+            Battery.tick(event.getServer());
+        }
+    }
+
+    @SubscribeEvent
     public static void onJoin(EntityJoinLevelEvent event) {
         if (!event.getLevel().isClientSide && event.getEntity() instanceof Villager v && Gunners.isGunner(v)) {
             Gunners.attachGoal(v);

@@ -130,6 +130,87 @@ final class Rv {
         return out;
     }
 
+    private static Method fRecruits, fCivilians;
+
+    private static void init2() throws Exception {
+        if (fRecruits == null) {
+            Class<?> faction = Class.forName("com.diego.recruitsvillages.data.FactionData");
+            fRecruits = faction.getMethod("getRecruitCount");
+            fCivilians = faction.getMethod("getCivilianCount");
+        }
+    }
+
+    /** Non-player villages. */
+    @SuppressWarnings("unchecked")
+    static List<Object> villages(ServerLevel level) {
+        List<Object> out = new ArrayList<>();
+        if (!available()) {
+            return out;
+        }
+        try {
+            for (Object f : (Collection<Object>) getFactions.invoke(dataGet.invoke(null, level.getServer()))) {
+                if (!Boolean.TRUE.equals(fPlayer.invoke(f))) {
+                    out.add(f);
+                }
+            }
+        } catch (Throwable t) {
+            TrainRecruits.LOGGER.warn("[artillery] cannot list villages: {}", t.toString());
+        }
+        return out;
+    }
+
+    static UUID idOf(Object f) throws Exception { return (UUID) fId.invoke(f); }
+    static UUID groupOf(Object f) throws Exception { return (UUID) fGroup.invoke(f); }
+    static BlockPos centerOf(Object f) throws Exception { return (BlockPos) fCenter.invoke(f); }
+
+    static int population(Object f) throws Exception {
+        init2();
+        return (Integer) fRecruits.invoke(f) + (Integer) fCivilians.invoke(f);
+    }
+
+    static Object byId(ServerLevel level, UUID id) throws Exception {
+        return getFaction.invoke(dataGet.invoke(null, level.getServer()), id);
+    }
+
+    /** Faction id a villager was spawned for, or null. */
+    static UUID villagerFaction(Entity villager) {
+        CompoundTag d = villager.getPersistentData();
+        return d.hasUUID(VILLAGER_TAG) ? d.getUUID(VILLAGER_TAG) : null;
+    }
+
+    /** Centres of villages at war with (or enemies of) the given village faction. */
+    @SuppressWarnings("unchecked")
+    static List<BlockPos> enemyCentersOf(ServerLevel level, UUID factionId) {
+        List<BlockPos> out = new ArrayList<>();
+        if (!available()) {
+            return out;
+        }
+        try {
+            Object mine = byId(level, factionId);
+            if (mine == null) {
+                return out;
+            }
+            Object group = fGroup.invoke(mine);
+            Collection<Object> all = (Collection<Object>) getFactions.invoke(dataGet.invoke(null, level.getServer()));
+            String myTeam = String.valueOf(fStringId.invoke(mine));
+            for (Object f : all) {
+                if (group.equals(fGroup.invoke(f))) {
+                    continue;
+                }
+                boolean enemy = Boolean.TRUE.equals(warBetween.invoke(null, fId.invoke(mine), fId.invoke(f)));
+                if (!enemy) {
+                    enemy = "ENEMY".equals(relation(myTeam, String.valueOf(fStringId.invoke(f))));
+                }
+                if (enemy) {
+                    out.add((BlockPos) fCenter.invoke(f));
+                }
+            }
+        } catch (Throwable t) {
+            TrainRecruits.LOGGER.warn("[artillery] enemy scan (village) failed: {}", t.toString());
+        }
+        return out;
+    }
+
     private static String relation(String a, String b) {
         try {
             Class<?> fe = Class.forName("com.talhanation.recruits.FactionEvents");

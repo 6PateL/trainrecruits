@@ -5,6 +5,9 @@ import net.minecraftforge.common.ForgeConfigSpec;
 public class TrainConfig {
     public enum AfterDisembark { HOLD, FOLLOW, WANDER }
 
+    public static final ForgeConfigSpec.BooleanValue VILLAGE_GUNS;
+    public static final ForgeConfigSpec.IntValue VILLAGE_GUN_POP;
+    public static final ForgeConfigSpec.IntValue VILLAGE_GUN_RETRY_MIN;
     public static final ForgeConfigSpec SPEC;
 
     public static final ForgeConfigSpec.DoubleValue SEARCH_RADIUS;
@@ -93,6 +96,14 @@ public class TrainConfig {
                 .defineInRange("friendlyClearance", 24, 0, 96);
         GUN_AMMO = b.comment("Entity type of the shell fired (endless supply).")
                 .define("ammo", "createbigcannons:he_shell");
+        b.pop();
+        b.push("villageArtillery");
+        VILLAGE_GUNS = b.comment("Villages (not player factions) build a simple Big Cannons gun and man it with a villager once they are big enough. Needs Create Big Cannons.")
+                .define("enabled", true);
+        VILLAGE_GUN_POP = b.comment("A village builds its gun when recruits + villagers reach this number.")
+                .defineInRange("minPopulation", 12, 1, 500);
+        VILLAGE_GUN_RETRY_MIN = b.comment("Minutes between attempts to build a gun in the same village.")
+                .defineInRange("retryMinutes", 10, 1, 600);
         b.pop();
         SPEC = b.build();
     }

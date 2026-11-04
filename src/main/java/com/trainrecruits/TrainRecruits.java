@@ -29,6 +29,7 @@ public class TrainRecruits {
         }
         if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
             event.accept(ModRegistry.COMMANDER_BATON.get());
+            event.accept(ModRegistry.ARTILLERY_DEBUG.get());
         }
     }
 }

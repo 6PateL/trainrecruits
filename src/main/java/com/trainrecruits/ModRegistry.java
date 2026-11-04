@@ -40,6 +40,9 @@ public class ModRegistry {
     public static final RegistryObject<Item> COMMANDER_BATON =
             ITEMS.register("commander_baton", () -> new BatonItem(new Item.Properties().stacksTo(1)));
 
+    public static final RegistryObject<Item> ARTILLERY_DEBUG =
+            ITEMS.register("artillery_debug_tool", () -> new ArtilleryDebugItem(new Item.Properties().stacksTo(1)));
+
     public static final RegistryObject<BlockEntityType<StationBlockEntity>> STATION_BE =
             BLOCK_ENTITIES.register("station", () ->
                     BlockEntityType.Builder.of(StationBlockEntity::new,

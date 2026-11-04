@@ -67,5 +67,9 @@
   "msg.trainrecruits.crew_auto_on": "The crew picks targets by itself.",
   "msg.trainrecruits.crew_auto_off": "Automatic targeting off.",
   "msg.trainrecruits.crew_unreachable": "The crew cannot hit that point (out of range or terrain in the way).",
-  "item.trainrecruits.commander_baton.desc3": "Right-click a villager of your own Recruits village: mobilise as an artillery crew (Big Cannons gun)."
+  "item.trainrecruits.commander_baton.desc3": "Right-click a villager of your own Recruits village: mobilise as an artillery crew (Big Cannons gun).",
+  "item.trainrecruits.artillery_debug_tool": "Artillery Debug Tool",
+  "msg.trainrecruits.debug_battery_ok": "Gun built, a faction villager is manning it.",
+  "msg.trainrecruits.debug_battery_fail": "Could not build a gun here (no room, or Create Big Cannons is missing).",
+  "msg.trainrecruits.debug_battery_nocrew": "The gun is built but there is no faction villager nearby."
 }

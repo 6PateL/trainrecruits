@@ -13,6 +13,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.EnumSet;
+import java.util.UUID;
 
 /**
  * Runs a mobilised villager: stands at the bound cannon, aims it at the ordered point (or at an automatic target)
@@ -98,17 +99,21 @@ public class GunnerGoal extends Goal {
             target = new Vec3(d.getInt(Gunners.TX) + 0.5D, d.getInt(Gunners.TY) + 0.5D, d.getInt(Gunners.TZ) + 0.5D);
         } else if (d.getBoolean(Gunners.AUTO) && level.getGameTime() >= nextScan && cooldown == 0) {
             nextScan = level.getGameTime() + 100L;
-            ServerPlayer owner = level.getServer().getPlayerList().getPlayer(Gunners.owner(v));
+            UUID ownerId = Gunners.owner(v);
+            ServerPlayer owner = ownerId == null ? null : level.getServer().getPlayerList().getPlayer(ownerId);
+            BlockPos p = null;
             if (owner != null) {
-                BlockPos p = Gunners.autoTarget(level, owner, mount);
-                if (p != null) {
-                    int y = level.hasChunkAt(p) ? level.getHeight(Heightmap.Types.MOTION_BLOCKING, p.getX(), p.getZ()) : p.getY();
-                    d.putInt(Gunners.TX, p.getX());
-                    d.putInt(Gunners.TY, y);
-                    d.putInt(Gunners.TZ, p.getZ());
-                    d.putInt(Gunners.SHOTS, TrainConfig.GUN_SHOTS_PER_ORDER.get());
-                    target = new Vec3(p.getX() + 0.5D, y + 0.5D, p.getZ() + 0.5D);
-                }
+                p = Gunners.autoTarget(level, owner, mount);
+            } else if (d.hasUUID(Gunners.FACTION)) {
+                p = Gunners.factionTarget(level, d.getUUID(Gunners.FACTION), mount);
+            }
+            if (p != null) {
+                int y = level.hasChunkAt(p) ? level.getHeight(Heightmap.Types.MOTION_BLOCKING, p.getX(), p.getZ()) : p.getY();
+                d.putInt(Gunners.TX, p.getX());
+                d.putInt(Gunners.TY, y);
+                d.putInt(Gunners.TZ, p.getZ());
+                d.putInt(Gunners.SHOTS, TrainConfig.GUN_SHOTS_PER_ORDER.get());
+                target = new Vec3(p.getX() + 0.5D, y + 0.5D, p.getZ() + 0.5D);
             }
         }
         if (target == null) {
@@ -118,7 +123,8 @@ public class GunnerGoal extends Goal {
 
         Cbc.Result r = Cbc.aim(level, mount, target, aim);
         if (!r.feasible()) {
-            ServerPlayer owner = level.getServer().getPlayerList().getPlayer(Gunners.owner(v));
+            UUID oid = Gunners.owner(v);
+            ServerPlayer owner = oid == null ? null : level.getServer().getPlayerList().getPlayer(oid);
             if (owner != null && !d.getBoolean(Gunners.AUTO)) {
                 owner.displayClientMessage(Component.translatable("msg.trainrecruits.crew_unreachable"), true);
             }

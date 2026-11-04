@@ -31,5 +31,8 @@ public class TrainRecruits {
             event.accept(ModRegistry.COMMANDER_BATON.get());
             event.accept(ModRegistry.ARTILLERY_DEBUG.get());
         }
+        if (event.getTabKey() == CreativeModeTabs.COMBAT || event.getTabKey() == CreativeModeTabs.OP_BLOCKS) {
+            event.accept(ModRegistry.ARTILLERY_DEBUG.get());
+        }
     }
 }

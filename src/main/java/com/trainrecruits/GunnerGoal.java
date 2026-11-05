@@ -190,11 +190,21 @@ public class GunnerGoal extends Goal {
         return false;
     }
 
+    private void releaseBroken(ServerLevel level, String problem) {
+        UUID ownerId = Gunners.owner(v);
+        ServerPlayer owner = ownerId == null ? null : level.getServer().getPlayerList().getPlayer(ownerId);
+        Gunners.release(v);
+        TrainRecruits.LOGGER.info("[artillery] crew {} released: {}", v.getId(), problem);
+        if (owner != null) {
+            owner.displayClientMessage(net.minecraft.network.chat.Component.translatable("msg.trainrecruits.crew_released_broken",
+                    net.minecraft.network.chat.Component.translatable("msg.trainrecruits.post_problem." + (problem == null ? "no_cannon" : problem))), true);
+        }
+    }
+
     private void tickPost(ServerLevel level, CompoundTag d, BlockPos post) {
-        // the post holds him: he never leaves it for long
+        // the post holds him; when the gun is broken he is an ordinary villager again
         if (!Battery.postReady(level, post)) {
-            state(CrewEntry.IDLE);
-            walkTo(post.above(), 2.5D);
+            releaseBroken(level, Battery.problem(level, post));
             return;
         }
         Vec3 target = phase == P_START && cooldown > 0 ? null : findTarget(level, d, post);
@@ -236,9 +246,8 @@ public class GunnerGoal extends Goal {
                     v.swing(InteractionHand.MAIN_HAND);
                     Battery.activate(level, gun, dir);
                     if (++activateTries > 4) {
-                        activateTries = 0;
-                        clearTarget(d);
-                        cooldown = 400;
+                        releaseBroken(level, "no_cannon");
+                        return;
                     }
                 }
             }

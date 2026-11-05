@@ -72,21 +72,30 @@ public final class Gunners {
 
     // ------------------------------------------------------------------ baton: mobilise / release
 
+    /** The villager stops being a gunner and goes back to the ordinary village life. */
+    public static void release(Villager v) {
+        CompoundTag d = v.getPersistentData();
+        for (String k : new String[]{TAG, OWNER, FACTION, MOUNT, AUTO, TX, TY, TZ, SHOTS, STATE}) {
+            d.remove(k);
+        }
+        Component custom = v.getCustomName();
+        if (custom != null && custom.getString().startsWith(NAME_PREFIX)) {
+            v.setCustomName(null);
+            v.setCustomNameVisible(false);
+        }
+        v.goalSelector.removeAllGoals(g -> g instanceof GunnerGoal);
+        if (v.level() instanceof ServerLevel sl) {
+            v.refreshBrain(sl); // the schedule, work and sleep come back
+        }
+    }
+
     public static void toggle(ServerPlayer player, Villager v) {
         if (isGunner(v)) {
             if (!player.getUUID().equals(owner(v))) {
                 player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_not_yours"), true);
                 return;
             }
-            CompoundTag d = v.getPersistentData();
-            for (String k : new String[]{TAG, OWNER, FACTION, MOUNT, AUTO, TX, TY, TZ, SHOTS, STATE}) {
-                d.remove(k);
-            }
-            Component custom = v.getCustomName();
-            if (custom != null && custom.getString().startsWith(NAME_PREFIX)) {
-                v.setCustomName(null);
-                v.setCustomNameVisible(false);
-            }
+            release(v);
             player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_released"), true);
             Net.sendSquads(player);
             return;

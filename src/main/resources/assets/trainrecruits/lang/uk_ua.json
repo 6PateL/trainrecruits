@@ -82,5 +82,6 @@
   "msg.trainrecruits.post_problem.no_lever": "немає важеля активації за монтуванням (з боку молотка)",
   "msg.trainrecruits.post_problem.no_button": "немає кнопки пострілу перед монтуванням",
   "msg.trainrecruits.post_problem.no_controller": "немає контролера рискання поруч з монтуванням",
-  "msg.trainrecruits.post_problem.no_cannon": "на монтуванні немає гармати (казенник на 2 блоки вище)"
+  "msg.trainrecruits.post_problem.no_cannon": "гармата не збирається (немає блоків гармати над монтуванням)",
+  "msg.trainrecruits.crew_released_broken": "Гармата зламана, житель знову звичайний: %s"
 }

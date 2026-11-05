@@ -82,5 +82,6 @@
   "msg.trainrecruits.post_problem.no_lever": "no activation lever behind the mount (hammer side)",
   "msg.trainrecruits.post_problem.no_button": "no firing button in front of the mount",
   "msg.trainrecruits.post_problem.no_controller": "no yaw controller next to the mount",
-  "msg.trainrecruits.post_problem.no_cannon": "no cannon on the mount (breech two blocks above it)"
+  "msg.trainrecruits.post_problem.no_cannon": "the cannon cannot be assembled (no cannon blocks above the mount)",
+  "msg.trainrecruits.crew_released_broken": "The gun is broken, the villager is ordinary again: %s"
 }

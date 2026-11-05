@@ -114,15 +114,6 @@ final class Battery {
         Direction d = facingOf(level, m);
         if (!(level.getBlockState(leverOf(m, d)).getBlock() instanceof net.minecraft.world.level.block.LeverBlock)) return "no_lever";
         if (!(level.getBlockState(buttonOf(m, d)).getBlock() instanceof net.minecraft.world.level.block.ButtonBlock)) return "no_button";
-        Block yaw = block("yaw_controller");
-        boolean ctl = false;
-        for (Direction s : Direction.values()) {
-            if (yaw != null && level.getBlockState(m.relative(s)).getBlock() == yaw) ctl = true;
-        }
-        if (!ctl) return "no_controller";
-        if (Cbc.isUsableMount(level.getBlockEntity(m))) return null;
-        ResourceLocation cid = ForgeRegistries.BLOCKS.getKey(level.getBlockState(m.above(2)).getBlock());
-        if (cid == null || !cid.getNamespace().equals("createbigcannons")) return "no_cannon"; // not assembled yet: the crew pulls the lever
         return null;
     }
 
@@ -134,7 +125,7 @@ final class Battery {
     private static void prepare(ServerLevel level, BlockPos post, Direction d) {
         Direction side = d.getClockWise();
         BlockPos m = post.relative(side);
-        List<BlockPos> ground = new java.util.ArrayList<>(List.of(post, m, m.relative(side), leverOf(m, d)));
+        List<BlockPos> ground = new java.util.ArrayList<>(List.of(post, m, leverOf(m, d)));
         for (int i = 1; i <= 3; i++) ground.add(m.relative(d, i));
         for (BlockPos g : ground) {
             for (int y = 0; y <= 4; y++) {
@@ -152,8 +143,7 @@ final class Battery {
 
     private static boolean build(ServerLevel level, BlockPos post, Direction d) {
         Block mount = block("cannon_mount");
-        Block yaw = block("yaw_controller");
-        if (mount == null || yaw == null) return false;
+        if (mount == null) return false;
         Block[] parts = new Block[PARTS.length];
         for (int i = 0; i < PARTS.length; i++) {
             parts[i] = block(PARTS[i]);
@@ -167,7 +157,6 @@ final class Battery {
         BlockPos m = post.relative(side);
         level.setBlock(post, ModRegistry.ARTILLERY_POST.get().defaultBlockState(), 3);
         level.setBlock(m, faced(mount, d), 3);
-        level.setBlock(m.relative(side), yaw.defaultBlockState(), 3);
         for (int i = 0; i < parts.length; i++) {
             level.setBlock(m.above(2).relative(d, i), faced(parts[i], d), 3);
         }
@@ -245,7 +234,7 @@ final class Battery {
 
     /** Builds the post with its gun (muzzle towards preferred if it fits, else any side). Returns the post or null. */
     static BlockPos buildPost(ServerLevel level, BlockPos post, Direction preferred) {
-        if (!Cbc.available() || block("cannon_mount") == null || block("yaw_controller") == null) return null;
+        if (!Cbc.available() || block("cannon_mount") == null) return null;
         if (!level.hasChunkAt(post) || !level.hasChunkAt(post.relative(Direction.NORTH, 6)) || !level.hasChunkAt(post.relative(Direction.SOUTH, 6))
                 || !level.hasChunkAt(post.relative(Direction.EAST, 6)) || !level.hasChunkAt(post.relative(Direction.WEST, 6))) return null;
         List<Direction> order = new java.util.ArrayList<>(List.of(SIDES));

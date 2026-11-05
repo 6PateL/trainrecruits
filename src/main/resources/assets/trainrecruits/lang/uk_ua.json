@@ -70,7 +70,7 @@
   "item.trainrecruits.commander_baton.desc3": "ПКМ по жителю свого рекрутерського поселення — мобілізувати в артилерійський розрахунок (гармата Big Cannons).",
   "item.trainrecruits.artillery_debug_tool": "Дебаг-тул артилерії",
   "msg.trainrecruits.debug_battery_ok": "Пост збудовано, житель призначений на розрахунок.",
-  "msg.trainrecruits.debug_battery_fail": "Не вдалося побудувати пост: потрібна рівна вільна ділянка приблизно 5x6 блоків і 6 блоків над нею, або CBC не відповів.",
+  "msg.trainrecruits.debug_battery_fail": "Не вдалося побудувати пост (CBC не зібрав гармату, деталі в логу [artillery]).",
   "msg.trainrecruits.debug_battery_nocrew": "Гармата є, але жителя фракції поруч нема.",
   "block.trainrecruits.artillery_post": "Артилерійський пост",
   "msg.trainrecruits.post_incomplete": "Пост побудований неправильно.",

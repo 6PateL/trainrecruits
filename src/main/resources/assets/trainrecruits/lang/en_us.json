@@ -70,7 +70,7 @@
   "item.trainrecruits.commander_baton.desc3": "Right-click a villager of your own Recruits village: mobilise as an artillery crew (Big Cannons gun).",
   "item.trainrecruits.artillery_debug_tool": "Artillery Debug Tool",
   "msg.trainrecruits.debug_battery_ok": "Post built, villager assigned.",
-  "msg.trainrecruits.debug_battery_fail": "Could not build the post: needs a flat free area of about 5x6 blocks with 6 free blocks above, or CBC did not respond.",
+  "msg.trainrecruits.debug_battery_fail": "Could not build the post (CBC did not assemble the cannon, see the [artillery] log lines).",
   "msg.trainrecruits.debug_battery_nocrew": "The gun is built but there is no faction villager nearby.",
   "block.trainrecruits.artillery_post": "Artillery Post",
   "msg.trainrecruits.post_incomplete": "The post is built wrong.",

@@ -30,7 +30,7 @@ public final class VillageGuns {
     private static final List<Pending> PENDING = new ArrayList<>();
     private static final int HILL = 7;
 
-    private record Pending(long due, BlockPos post, UUID faction) {}
+    private record Pending(long due, BlockPos post, UUID faction, UUID owner) {}
 
     private VillageGuns() {}
 
@@ -40,8 +40,13 @@ public final class VillageGuns {
     public static void onDeath(LivingDeathEvent event) {
         if (event.getEntity().level().isClientSide || !(event.getEntity() instanceof Villager v) || !Gunners.isGunner(v)) return;
         var d = v.getPersistentData();
-        if (d.contains(Gunners.MOUNT) && d.hasUUID(Gunners.FACTION)) {
-            PENDING.add(new Pending(v.level().getGameTime() + 100L, BlockPos.of(d.getLong(Gunners.MOUNT)), d.getUUID(Gunners.FACTION)));
+        if (!d.contains(Gunners.MOUNT)) return;
+        BlockPos post = BlockPos.of(d.getLong(Gunners.MOUNT));
+        if (d.hasUUID(Gunners.FACTION)) {
+            PENDING.add(new Pending(v.level().getGameTime() + 100L, post, d.getUUID(Gunners.FACTION), null));
+        } else if (d.hasUUID(Gunners.OWNER)) {
+            // a crew of yours: no replacement, the gun is taken apart and you assemble it again yourself
+            PENDING.add(new Pending(v.level().getGameTime() + 20L, post, null, d.getUUID(Gunners.OWNER)));
         }
     }
 
@@ -60,6 +65,14 @@ public final class VillageGuns {
             if (now < p.due) return false;
             if (!level.isLoaded(p.post)) return now > p.due + 6000L; // try again when the chunk is back
             if (!Battery.isPost(level, p.post)) return true;
+            if (p.faction == null) {
+                Battery.dismantle(level, p.post);
+                net.minecraft.server.level.ServerPlayer owner = level.getServer().getPlayerList().getPlayer(p.owner);
+                if (owner != null) {
+                    owner.displayClientMessage(net.minecraft.network.chat.Component.translatable("msg.trainrecruits.crew_died_dismantled"), true);
+                }
+                return true;
+            }
             if (Battery.crewNear(level, p.post, p.faction) != null) return true;
             Villager v = Battery.freeVillager(level, p.post, p.faction);
             if (v != null) {

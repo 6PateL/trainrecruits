@@ -98,5 +98,6 @@
   "msg.trainrecruits.general_not": "Це не генерал.",
   "msg.trainrecruits.follow_started": "Житель іде за тобою.",
   "msg.trainrecruits.follow_stopped": "Житель більше не йде за тобою.",
-  "msg.trainrecruits.follow_gunner": "Цей житель на розрахунку."
+  "msg.trainrecruits.follow_gunner": "Цей житель на розрахунку.",
+  "msg.trainrecruits.crew_died_dismantled": "Розрахунок загинув, гармату розібрано. Збери її знову сам."
 }

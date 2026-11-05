@@ -98,5 +98,6 @@
   "msg.trainrecruits.general_not": "He is not a general.",
   "msg.trainrecruits.follow_started": "The villager follows you.",
   "msg.trainrecruits.follow_stopped": "The villager no longer follows you.",
-  "msg.trainrecruits.follow_gunner": "This villager is a gun crew."
+  "msg.trainrecruits.follow_gunner": "This villager is a gun crew.",
+  "msg.trainrecruits.crew_died_dismantled": "The crew died and the gun was taken apart. Build it again yourself."
 }

@@ -30,7 +30,6 @@ import java.util.UUID;
  */
 final class Battery {
     private static final String[] PARTS = {"bronze_quickfiring_breech", "bronze_cannon_chamber", "bronze_cannon_barrel", "bronze_cannon_barrel"};
-    private static final Map<UUID, Long> LAST_TRY = new HashMap<>();
 
     private Battery() {}
 
@@ -125,14 +124,18 @@ final class Battery {
     private static void prepare(ServerLevel level, BlockPos post, Direction d) {
         Direction side = d.getClockWise();
         BlockPos m = post.relative(side);
-        List<BlockPos> ground = new java.util.ArrayList<>(List.of(post, m, leverOf(m, d)));
-        for (int i = 1; i <= 3; i++) ground.add(m.relative(d, i));
-        for (BlockPos g : ground) {
+        List<BlockPos> ground = new java.util.ArrayList<>(List.of(post, m, leverOf(m, d), buttonOf(m, d)));
+        List<BlockPos> clear = new java.util.ArrayList<>(ground);
+        clear.add(m.relative(d, 2));
+        clear.add(m.relative(d, 3));
+        for (BlockPos g : clear) {
             for (int y = 0; y <= 4; y++) {
                 BlockPos p = g.above(y);
                 BlockState st = level.getBlockState(p);
                 if (!st.isAir() && st.getDestroySpeed(level, p) >= 0) level.setBlock(p, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
             }
+        }
+        for (BlockPos g : ground) {
             for (int y = 1; y <= 6; y++) {
                 BlockPos f = g.below(y);
                 if (level.getBlockState(f).isSolid()) break;
@@ -264,7 +267,7 @@ final class Battery {
         d.putUUID(Gunners.FACTION, faction);
         d.putLong(Gunners.MOUNT, mount.asLong());
         d.putBoolean(Gunners.AUTO, true);
-        if (v.position().distanceToSqr(mount.getX() + 0.5D, mount.getY(), mount.getZ() + 0.5D) > 64.0D) {
+        if (v.position().distanceToSqr(mount.getX() + 0.5D, mount.getY(), mount.getZ() + 0.5D) > 1600.0D) {
             v.teleportTo(mount.getX() + 0.5D, mount.getY() + 1.0D, mount.getZ() + 0.5D);
         }
         if (v.getCustomName() == null) {
@@ -299,59 +302,35 @@ final class Battery {
         return best;
     }
 
-    /** The ground around is roughly level, so that a village does not clear a roof or a hill. */
-    private static boolean flatAround(ServerLevel level, BlockPos base) {
-        for (int dx = -5; dx <= 5; dx += 2) {
-            for (int dz = -5; dz <= 5; dz += 2) {
-                int x = base.getX() + dx;
-                int z = base.getZ() + dz;
-                if (!level.hasChunkAt(new BlockPos(x, 64, z))) return false;
-                if (Math.abs(level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - base.getY()) > 1) return false;
-            }
-        }
-        return true;
-    }
-
-    // ------------------------------------------------------------------ villages grow guns
-
-    static void tick(MinecraftServer server) {
-        if (!TrainConfig.VILLAGE_GUNS.get() || !Cbc.available() || !Rv.available()) return;
-        ServerLevel level = server.overworld();
-        long now = level.getGameTime();
-        for (Object f : Rv.villages(level)) {
-            try {
-                UUID id = Rv.idOf(f);
-                BlockPos c = Rv.centerOf(f);
-                if (!level.hasChunkAt(c) || Rv.population(f) < TrainConfig.VILLAGE_GUN_POP.get()) continue;
-                BlockPos mount = Cbc.nearestMount(level, c, 40);
-                if (mount != null) {
-                    if (crewNear(level, mount, id) == null) {
-                        Villager v = freeVillager(level, mount, id);
-                        if (v != null) assignCrew(level, v, bindTarget(level, mount), id);
+    /** Takes the gun apart (the cannon is disassembled first, then everything is removed, nothing drops). */
+    static void dismantle(ServerLevel level, BlockPos post) {
+        BlockPos m = gunOf(level, post);
+        if (m != null) {
+            Direction d = facingOf(level, m);
+            BlockEntity be = level.getBlockEntity(m);
+            if (be != null) {
+                try {
+                    for (Class<?> k = be.getClass(); k != null; k = k.getSuperclass()) {
+                        try {
+                            Method dm = k.getDeclaredMethod("disassemble");
+                            dm.setAccessible(true);
+                            dm.invoke(be);
+                            break;
+                        } catch (NoSuchMethodException ignored) {
+                            // superclass
+                        }
                     }
-                    continue;
+                } catch (Throwable t) {
+                    TrainRecruits.LOGGER.warn("[artillery] could not disassemble the gun at {}: {}", m, t.toString());
                 }
-                Long last = LAST_TRY.get(id);
-                if (last != null && now - last < TrainConfig.VILLAGE_GUN_RETRY_MIN.get() * 1200L) continue;
-                LAST_TRY.put(id, now);
-                Villager crew = freeVillager(level, c, id);
-                if (crew == null) continue;
-                for (int i = 0; i < 24; i++) {
-                    int x = c.getX() + level.random.nextInt(25) - 12;
-                    int z = c.getZ() + level.random.nextInt(25) - 12;
-                    if (!level.hasChunkAt(new BlockPos(x, 64, z))) continue;
-                    BlockPos base = new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z), z);
-                    if (!flatAround(level, base)) continue;
-                    BlockPos built = buildPost(level, base, null);
-                    if (built != null) {
-                        assignCrew(level, crew, built, id);
-                        TrainRecruits.LOGGER.info("[artillery] village {} built an artillery post at {}", id, built);
-                        break;
-                    }
-                }
-            } catch (Throwable t) {
-                TrainRecruits.LOGGER.warn("[artillery] village gun failed: {}", t.toString());
             }
+            BlockState air = net.minecraft.world.level.block.Blocks.AIR.defaultBlockState();
+            for (int i = 0; i < PARTS.length; i++) level.setBlock(m.above(2).relative(d, i), air, 3);
+            level.setBlock(leverOf(m, d), air, 3);
+            level.setBlock(buttonOf(m, d), air, 3);
+            level.setBlock(m, air, 3);
         }
+        level.setBlock(post, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+        TrainRecruits.LOGGER.info("[artillery] post at {} dismantled", post);
     }
 }

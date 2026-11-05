@@ -54,6 +54,7 @@ public final class Net {
         CHANNEL.registerMessage(id++, SquadAssign.class, SquadAssign::encode, SquadAssign::decode, SquadAssign::handle);
         CHANNEL.registerMessage(id++, CrewList.class, CrewList::encode, CrewList::decode, CrewList::handle);
         CHANNEL.registerMessage(id++, CrewCommand.class, CrewCommand::encode, CrewCommand::decode, CrewCommand::handle);
+        CHANNEL.registerMessage(id++, BatonMode.class, BatonMode::encode, BatonMode::decode, BatonMode::handle);
     }
 
     public static void sendSquads(ServerPlayer player) {
@@ -415,6 +416,34 @@ public final class Net {
                 if (player != null) {
                     Gunners.order(player, m.crew, m.action, m.pos);
                 }
+            });
+            c.setPacketHandled(true);
+        }
+    }
+
+    /** Client -> server: the baton mode chosen in the menu. */
+    public record BatonMode(byte mode) {
+        static void encode(BatonMode m, FriendlyByteBuf buf) {
+            buf.writeByte(m.mode);
+        }
+
+        static BatonMode decode(FriendlyByteBuf buf) {
+            return new BatonMode(buf.readByte());
+        }
+
+        static void handle(BatonMode m, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> {
+                ServerPlayer player = c.getSender();
+                if (player == null || !(player.getMainHandItem().getItem() instanceof BatonItem)) {
+                    return;
+                }
+                if (m.mode < 0 || m.mode >= BatonItem.MODES || m.mode == BatonItem.MODE_SUPPLY) {
+                    player.displayClientMessage(Component.translatable("msg.trainrecruits.baton_reserved"), true);
+                    return;
+                }
+                BatonItem.setMode(player.getMainHandItem(), m.mode);
+                player.displayClientMessage(Component.translatable("msg.trainrecruits.baton_mode_set", BatonItem.modeName(m.mode)), true);
             });
             c.setPacketHandled(true);
         }

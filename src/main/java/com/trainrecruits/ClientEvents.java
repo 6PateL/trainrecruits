@@ -25,6 +25,31 @@ public final class ClientEvents {
 
     @Mod.EventBusSubscriber(modid = TrainRecruits.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static final class ForgeBus {
+        private static void menu(net.minecraftforge.event.entity.player.PlayerInteractEvent e) {
+            if (e.getLevel().isClientSide && e.getHand() == net.minecraft.world.InteractionHand.MAIN_HAND
+                    && e.getEntity().isShiftKeyDown() && e.getItemStack().getItem() instanceof BatonItem) {
+                BatonScreen.open();
+                if (e.isCancelable()) {
+                    e.setCanceled(true);
+                }
+            }
+        }
+
+        @SubscribeEvent
+        public static void onUseAir(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickItem e) {
+            menu(e);
+        }
+
+        @SubscribeEvent
+        public static void onUseBlock(net.minecraftforge.event.entity.player.PlayerInteractEvent.RightClickBlock e) {
+            menu(e);
+        }
+
+        @SubscribeEvent
+        public static void onUseEntity(net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract e) {
+            menu(e);
+        }
+
         @SubscribeEvent
         public static void onClientTick(TickEvent.ClientTickEvent event) {
             if (event.phase != TickEvent.Phase.END) {

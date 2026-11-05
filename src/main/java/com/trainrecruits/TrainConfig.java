@@ -100,10 +100,10 @@ public class TrainConfig {
         b.push("villageArtillery");
         VILLAGE_GUNS = b.comment("Villages (not player factions) build a simple Big Cannons gun and man it with a villager once they are big enough. Needs Create Big Cannons.")
                 .define("enabled", true);
-        VILLAGE_GUN_POP = b.comment("A village builds its gun when recruits + villagers reach this number.")
+        VILLAGE_GUN_POP = b.comment("A village builds guns when recruits + villagers reach this number (then about 10% of the population, rounded up, as posts on hills or towers).")
                 .defineInRange("minPopulation", 12, 1, 500);
         VILLAGE_GUN_RETRY_MIN = b.comment("Minutes between attempts to build a gun in the same village.")
-                .defineInRange("retryMinutes", 10, 1, 600);
+                .defineInRange("retryMinutes", 3, 1, 600);
         b.pop();
         SPEC = b.build();
     }

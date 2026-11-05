@@ -80,3 +80,16 @@ and a button in front of it (fires). The cannon (quick-firing breech, chamber, b
 The crew villager is bound to the post and stays on it: he walks to the lever side, loads a shell and a charge, aims, walks to the
 button and presses it. Shells are endless and random. Assignment (villages and the baton) uses one check; the result, or what is wrong,
 is shown above the hotbar, not in chat.
+
+## Village artillery growth
+
+From 12 inhabitants on a village builds artillery posts like one more building: about 10% of its population (rounded up),
+one new post per round. Posts go on the highest ground around (at least 7 blocks above the village's average level, not within
+20 blocks of another post); with no such hill a cobblestone tower (7 blocks, 3x3 platform) is built on level ground.
+A killed gunner is replaced by the nearest villager of the village after 5 seconds; with nobody left the gun is taken apart.
+
+## Baton modes
+
+Shift + right-click with the baton opens a menu: make a general, remove the general rank, assign a villager to a gun,
+lead a villager along (slot 5 is reserved for the supply company). A plain right-click then applies the chosen mode.
+Villagers must belong to your faction.

@@ -73,6 +73,21 @@ final class Battery {
         return level.hasChunkAt(p) && level.getBlockState(p).canBeReplaced() && level.getFluidState(p).isEmpty();
     }
 
+    /** Nearest artillery post block within r blocks (null if none): a complete one is preferred. */
+    static BlockPos postNear(ServerLevel level, BlockPos near, int r) {
+        BlockPos best = null;
+        double bd = Double.MAX_VALUE;
+        for (BlockPos p : BlockPos.betweenClosed(near.offset(-r, -4, -r), near.offset(r, 4, r))) {
+            if (!isPost(level, p)) continue;
+            double d = p.distSqr(near) - (postReady(level, p) ? 100000 : 0);
+            if (d < bd) {
+                bd = d;
+                best = p.immutable();
+            }
+        }
+        return best;
+    }
+
     /** The mount block next to the post (null if none). */
     static BlockPos gunOf(ServerLevel level, BlockPos post) {
         Block mount = block("cannon_mount");

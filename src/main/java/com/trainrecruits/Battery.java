@@ -29,7 +29,7 @@ import java.util.UUID;
  * and a villager of the village as its crew. Used by villages that grew big enough, and by the debug tool.
  */
 final class Battery {
-    private static final String[] PARTS = {"bronze_sliding_breech", "bronze_cannon_chamber", "bronze_cannon_barrel", "bronze_cannon_barrel"};
+    private static final String[] PARTS = {"bronze_quickfiring_breech", "bronze_cannon_chamber", "bronze_cannon_barrel", "bronze_cannon_barrel"};
     private static final Map<UUID, Long> LAST_TRY = new HashMap<>();
 
     private Battery() {}
@@ -42,7 +42,7 @@ final class Battery {
     private static BlockState faced(Block b, Direction f) {
         BlockState s = b.defaultBlockState();
         for (Property<?> p : s.getProperties()) {
-            if (p instanceof DirectionProperty dp && p.getName().equals("facing") && dp.getPossibleValues().contains(f)) {
+            if (p instanceof DirectionProperty dp && (p.getName().equals("facing") || p.getName().equals("horizontal_facing")) && dp.getPossibleValues().contains(f)) {
                 s = s.setValue(dp, f);
             }
         }
@@ -55,21 +55,58 @@ final class Battery {
         return level.isLoaded(p) && level.getBlockState(p).is(ModRegistry.ARTILLERY_POST.get());
     }
 
-    /** Is there room for one gun: mount at base, cannon line above it along f. */
-    private static boolean fitsGun(ServerLevel level, BlockPos base, Direction f) {
-        if (!level.hasChunkAt(base) || !level.getBlockState(base.below()).isSolid()) return false;
-        if (!level.getBlockState(base).canBeReplaced() || !level.getFluidState(base).isEmpty()) return false;
+    // Layout of one gun of the post (d = direction the muzzle points, P = post):
+    //   P+d   lever on the hammer side of the mount (assembles the cannon: redstone signal from behind)
+    //   P+2d  cannon mount (facing d), yaw controller under it, a shaft at its side (pitch input)
+    //   P+2d, 2 up: breech; the cannon lies along d at that height (the space 1 up is for the mount's arms)
+    //   P+3d  button on the firing side (redstone signal from the front fires the cannon)
+
+    static BlockPos mountOf(BlockPos post, Direction d) {
+        return post.relative(d, 2);
+    }
+
+    static BlockPos leverOf(BlockPos post, Direction d) {
+        return post.relative(d, 1);
+    }
+
+    static BlockPos buttonOf(BlockPos post, Direction d) {
+        return post.relative(d, 3);
+    }
+
+    private static Direction.Axis pitchAxis(Direction d) {
+        return d.getAxis() == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X;
+    }
+
+    private static BlockPos shaftOf(BlockPos mount, Direction d) {
+        return mount.relative(Direction.get(Direction.AxisDirection.POSITIVE, pitchAxis(d)));
+    }
+
+    private static boolean free(ServerLevel level, BlockPos p) {
+        return level.hasChunkAt(p) && level.getBlockState(p).canBeReplaced() && level.getFluidState(p).isEmpty();
+    }
+
+    /** Is there room for one gun with all its parts. */
+    private static boolean fitsGun(ServerLevel level, BlockPos post, Direction d) {
+        BlockPos m = mountOf(post, d);
+        BlockPos lever = leverOf(post, d);
+        BlockPos button = buttonOf(post, d);
+        for (BlockPos floor : new BlockPos[]{lever.below(), m.below(), button.below()}) {
+            if (!level.hasChunkAt(floor) || !level.getBlockState(floor).isSolid()) return false;
+        }
+        if (!free(level, lever) || !free(level, m) || !free(level, m.above()) || !free(level, button)
+                || !free(level, shaftOf(m, d))) return false;
         for (int i = 0; i < PARTS.length; i++) {
-            BlockPos p = base.above().relative(f, i);
-            if (!level.hasChunkAt(p) || !level.getBlockState(p).canBeReplaced() || !level.getFluidState(p).isEmpty()) return false;
+            if (!free(level, m.above(2).relative(d, i))) return false;
         }
         return true;
     }
 
-    /** Places and assembles one gun (mount at base, muzzle towards f). Assembly problems are logged; the blocks stay. */
-    private static boolean buildGun(ServerLevel level, BlockPos base, Direction f) {
+    /** Places one gun with its controls and pulls the lever (assembly). Returns true when the mount is running. */
+    private static boolean buildGun(ServerLevel level, BlockPos post, Direction d) {
         Block mount = block("cannon_mount");
-        if (mount == null) return false;
+        Block yaw = block("yaw_controller");
+        Block shaft = ForgeRegistries.BLOCKS.getValue(new ResourceLocation("create", "shaft"));
+        if (mount == null || yaw == null || shaft == null) return false;
         Block[] parts = new Block[PARTS.length];
         for (int i = 0; i < PARTS.length; i++) {
             parts[i] = block(PARTS[i]);
@@ -78,72 +115,117 @@ final class Battery {
                 return false;
             }
         }
-        level.setBlock(base, mount.defaultBlockState(), 3);
-        for (int i = 0; i < parts.length; i++) {
-            level.setBlock(base.above().relative(f, i), faced(parts[i], f), 3);
+        BlockPos m = mountOf(post, d);
+        level.setBlock(m.below(), yaw.defaultBlockState(), 3);
+        level.setBlock(m, faced(mount, d), 3);
+        BlockState sh = shaft.defaultBlockState();
+        if (sh.hasProperty(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS)) {
+            sh = sh.setValue(net.minecraft.world.level.block.state.properties.BlockStateProperties.AXIS, pitchAxis(d));
         }
-        BlockEntity be = level.getBlockEntity(base);
+        level.setBlock(shaftOf(m, d), sh, 3);
+        for (int i = 0; i < parts.length; i++) {
+            level.setBlock(m.above(2).relative(d, i), faced(parts[i], d), 3);
+        }
+        level.setBlock(leverOf(post, d), net.minecraft.world.level.block.Blocks.LEVER.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.LeverBlock.FACING, d)
+                .setValue(net.minecraft.world.level.block.LeverBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR), 3);
+        level.setBlock(buttonOf(post, d), net.minecraft.world.level.block.Blocks.STONE_BUTTON.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.ButtonBlock.FACING, d)
+                .setValue(net.minecraft.world.level.block.ButtonBlock.FACE, net.minecraft.world.level.block.state.properties.AttachFace.FLOOR), 3);
+        return activate(level, post, d);
+    }
+
+    /** The lever is pulled once: the mount gets the assembly signal. Falls back to assembling directly. */
+    static boolean activate(ServerLevel level, BlockPos post, Direction d) {
+        BlockPos m = mountOf(post, d);
+        if (Cbc.isUsableMount(level.getBlockEntity(m))) return true;
+        BlockPos lp = leverOf(post, d);
+        BlockState ls = level.getBlockState(lp);
+        if (ls.getBlock() instanceof net.minecraft.world.level.block.LeverBlock lv) {
+            if (ls.getValue(net.minecraft.world.level.block.LeverBlock.POWERED)) {
+                ls = lv.pull(ls, level, lp); // off, so that the next pull is a fresh signal
+            }
+            lv.pull(ls, level, lp);
+        }
+        if (Cbc.isUsableMount(level.getBlockEntity(m))) return true;
+        BlockEntity be = level.getBlockEntity(m);
         if (be == null) return false;
         try {
-            Method m = null;
-            for (Class<?> k = be.getClass(); k != null && m == null; k = k.getSuperclass()) {
+            Method am = null;
+            for (Class<?> k = be.getClass(); k != null && am == null; k = k.getSuperclass()) {
                 try {
-                    m = k.getDeclaredMethod("assemble");
+                    am = k.getDeclaredMethod("assemble");
                 } catch (NoSuchMethodException ignored) {
                     // superclass
                 }
             }
-            if (m == null) return false;
-            m.setAccessible(true);
-            m.invoke(be);
+            if (am == null) return false;
+            am.setAccessible(true);
+            am.invoke(be);
         } catch (Throwable t) {
-            TrainRecruits.LOGGER.warn("[artillery] could not assemble the gun at {}: {}", base, String.valueOf(t.getCause() != null ? t.getCause() : t));
-            return false;
+            TrainRecruits.LOGGER.warn("[artillery] could not assemble the gun at {}: {}", m, String.valueOf(t.getCause() != null ? t.getCause() : t));
         }
-        return true;
+        return Cbc.isUsableMount(level.getBlockEntity(m));
+    }
+
+    /** Presses the firing button of the gun. */
+    static void pressButton(ServerLevel level, BlockPos post, Direction d) {
+        BlockPos bp = buttonOf(post, d);
+        BlockState bs = level.getBlockState(bp);
+        if (bs.getBlock() instanceof net.minecraft.world.level.block.ButtonBlock bb && !bs.getValue(net.minecraft.world.level.block.ButtonBlock.POWERED)) {
+            bb.press(bs, level, bp);
+        }
     }
 
     /**
-     * Builds an artillery post: the post block in the middle and four guns around it, muzzles to N/E/S/W.
-     * The crew stands on top of the post and works all four. Returns the post position or null.
+     * Builds an artillery post: the post block in the middle and four guns around it, muzzles to N/E/S/W,
+     * each with its lever, button, yaw controller and pitch shaft. Returns the post position or null.
      */
     static BlockPos buildPost(ServerLevel level, BlockPos post) {
-        if (!Cbc.available() || block("cannon_mount") == null) return null;
+        if (!Cbc.available() || block("cannon_mount") == null || block("yaw_controller") == null) return null;
         if (!level.hasChunkAt(post) || !level.getBlockState(post.below()).isSolid()
                 || !level.getBlockState(post).canBeReplaced() || !level.getBlockState(post.above()).canBeReplaced()) return null;
         for (Direction d : SIDES) {
-            if (!fitsGun(level, post.relative(d), d)) return null;
+            if (!fitsGun(level, post, d)) return null;
         }
         level.setBlock(post, ModRegistry.ARTILLERY_POST.get().defaultBlockState(), 3);
         int ok = 0;
         for (Direction d : SIDES) {
-            if (buildGun(level, post.relative(d), d)) ok++;
+            if (buildGun(level, post, d)) ok++;
         }
-        TrainRecruits.LOGGER.info("[artillery] post at {}: {}/4 guns placed", post, ok);
+        TrainRecruits.LOGGER.info("[artillery] post at {}: {}/4 guns running", post, ok);
         return ok == 4 ? post : null;
     }
 
-    /** Nearest artillery post block within r blocks (null if none): prefers a complete one. */
-    static BlockPos postNear(ServerLevel level, BlockPos near, int r) {
-        BlockPos best = null;
-        double bd = Double.MAX_VALUE;
-        for (BlockPos p : BlockPos.betweenClosed(near.offset(-r, -4, -r), near.offset(r, 4, r))) {
-            if (!isPost(level, p)) continue;
-            double d = p.distSqr(near) - (postReady(level, p) ? 100000 : 0);
-            if (d < bd) {
-                bd = d;
-                best = p.immutable();
-            }
+    /** One gun is built right: mount facing d, yaw controller under it, pitch shaft beside it, lever, button and the cannon. */
+    static boolean gunBuilt(ServerLevel level, BlockPos post, Direction d) {
+        BlockPos m = mountOf(post, d);
+        if (!level.isLoaded(m)) return false;
+        BlockState ms = level.getBlockState(m);
+        if (ms.getBlock() != block("cannon_mount")) return false;
+        for (Property<?> p : ms.getProperties()) {
+            if (p instanceof DirectionProperty dp && p.getName().equals("facing") && ms.getValue(dp) != d) return false;
         }
-        return best;
+        if (level.getBlockState(m.below()).getBlock() != block("yaw_controller")) return false;
+        boolean pitch = false;
+        for (int s : new int[]{1, -1}) {
+            BlockState ps = level.getBlockState(m.relative(Direction.get(s > 0 ? Direction.AxisDirection.POSITIVE : Direction.AxisDirection.NEGATIVE, pitchAxis(d))));
+            ResourceLocation id = ForgeRegistries.BLOCKS.getKey(ps.getBlock());
+            if (id != null && id.getNamespace().equals("create") && !ps.isAir()) pitch = true;
+        }
+        if (!pitch) return false;
+        if (!(level.getBlockState(leverOf(post, d)).getBlock() instanceof net.minecraft.world.level.block.LeverBlock)) return false;
+        if (!(level.getBlockState(buttonOf(post, d)).getBlock() instanceof net.minecraft.world.level.block.ButtonBlock)) return false;
+        if (Cbc.isUsableMount(level.getBlockEntity(m))) return true;
+        ResourceLocation cid = ForgeRegistries.BLOCKS.getKey(level.getBlockState(m.above(2)).getBlock());
+        return cid != null && cid.getNamespace().equals("createbigcannons"); // not assembled yet, the crew pulls the lever
     }
 
     /** The four guns around a post that are assembled and usable (null entries for missing ones). */
     static BlockPos[] gunsOf(ServerLevel level, BlockPos post) {
         BlockPos[] out = new BlockPos[4];
         for (int i = 0; i < 4; i++) {
-            BlockPos m = post.relative(SIDES[i]);
-            out[i] = Cbc.isUsableMount(level.getBlockEntity(m)) ? m : null;
+            out[i] = gunBuilt(level, post, SIDES[i]) ? mountOf(post, SIDES[i]) : null;
         }
         return out;
     }
@@ -180,7 +262,7 @@ final class Battery {
     /** If the mount belongs to a post (adjacent post block), the crew binds to the post instead of the single gun. */
     static BlockPos bindTarget(ServerLevel level, BlockPos mount) {
         for (Direction d : SIDES) {
-            if (isPost(level, mount.relative(d))) return mount.relative(d);
+            if (isPost(level, mount.relative(d, 2))) return mount.relative(d, 2);
         }
         return mount;
     }

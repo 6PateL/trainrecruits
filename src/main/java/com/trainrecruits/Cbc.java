@@ -362,6 +362,21 @@ final class Cbc {
         }
     }
 
+    private static final String[] AMMO = {"he_shell", "he_shell", "shrapnel_shell", "ap_shell", "solid_shot"};
+
+    /** Random shell type of the endless supply (the configured one is always among the candidates). */
+    static EntityType<?> randomAmmo(ServerLevel level) {
+        List<EntityType<?>> list = new ArrayList<>();
+        ResourceLocation cfg = ResourceLocation.tryParse(TrainConfig.GUN_AMMO.get());
+        EntityType<?> c0 = cfg == null ? null : ForgeRegistries.ENTITY_TYPES.getValue(cfg);
+        if (c0 != null && ForgeRegistries.ENTITY_TYPES.containsKey(cfg)) list.add(c0);
+        for (String a : AMMO) {
+            ResourceLocation id = new ResourceLocation("createbigcannons", a);
+            if (ForgeRegistries.ENTITY_TYPES.containsKey(id)) list.add(ForgeRegistries.ENTITY_TYPES.getValue(id));
+        }
+        return list.isEmpty() ? null : list.get(level.random.nextInt(list.size()));
+    }
+
     /** Spawns an endless-supply shell at the muzzle along the barrel. */
     static boolean fire(ServerLevel level, BlockPos mountPos) {
         BlockEntity be = level.getBlockEntity(mountPos);
@@ -370,10 +385,9 @@ final class Cbc {
         }
         try {
             Geo g = geometry(be);
-            ResourceLocation id = ResourceLocation.tryParse(TrainConfig.GUN_AMMO.get());
-            EntityType<?> type = id == null ? null : ForgeRegistries.ENTITY_TYPES.getValue(id);
+            EntityType<?> type = randomAmmo(level);
             if (type == null) {
-                TrainRecruits.LOGGER.warn("[artillery] unknown ammo entity '{}'", TrainConfig.GUN_AMMO.get());
+                TrainRecruits.LOGGER.warn("[artillery] no ammo entity found");
                 return false;
             }
             Entity shell = type.create(level);

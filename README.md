@@ -70,3 +70,14 @@
 Села (не фракції гравців), де населення (воїни + жителі) досягло `villageArtillery.minPopulation` (12), самі будують такий пост (бронзові гармати: кріплення, казенник, камера, два стовбури) і ставлять на нього жителя свого села; повтор спроби `retryMinutes`. Такий розрахунок стріляє за тими самими правилами (ворожі за війною/дипломатією, гнізда зараження, варварські поселення).
 
 Дебаг-тул «Artillery Debug Tool» (вкладки Інструменти/Бій/Оператор): ПКМ по землі — одразу з'являється пост із 4 гарматами, а на ньому — найближчий житель села (якщо жителя нема, створюється житель найближчого села). Якщо збірка гармат не вдалась, у лозі буде `[artillery] could not assemble`.
+
+## Artillery post (how it works now)
+
+The post block stands in the middle; four guns point N/E/S/W. Each gun is built like Create Big Cannons wants it:
+`post – lever – cannon mount – button` in a line, a **yaw controller** under the mount, a **shaft** beside it (pitch input) and
+the cannon (quick-firing breech, chamber, barrels) two blocks above the mount, lying along the line.
+The lever sits on the hammer side (assembles the cannon, pulled once and left on), the button on the firing side.
+
+The crew villager is bound to the post and stays on it. For every shot he walks to the lever side and loads a shell, then a charge,
+aims the gun (yaw/pitch are set directly), walks to the button and presses it. Shells are endless and random (HE, shrapnel, AP, solid).
+A player's crew uses the same check: the baton on a villager works only next to a complete post; the baton on the post shows its status.

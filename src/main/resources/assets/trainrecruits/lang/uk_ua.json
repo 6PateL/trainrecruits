@@ -73,6 +73,6 @@
   "msg.trainrecruits.debug_battery_fail": "Тут не вийшло збудувати гармату (мало місця або нема Create Big Cannons).",
   "msg.trainrecruits.debug_battery_nocrew": "Гармата є, але жителя фракції поруч нема.",
   "block.trainrecruits.artillery_post": "Артилерійський пост",
-  "msg.trainrecruits.post_incomplete": "Пост побудований неправильно: потрібні 4 зібрані гармати навколо, дулами в усі боки.",
+  "msg.trainrecruits.post_incomplete": "Пост побудований неправильно: потрібні 4 гармати навколо, кожна з важелем з боку молотка, контролером рискання знизу, валом збоку та кнопкою спереду.",
   "msg.trainrecruits.post_ready": "Пост готовий: 4 гармати. Натисни жезлом на селянина поруч, щоб призначити розрахунок."
 }

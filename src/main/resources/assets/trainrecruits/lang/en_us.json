@@ -69,10 +69,18 @@
   "msg.trainrecruits.crew_unreachable": "The crew cannot hit that point (out of range or terrain in the way).",
   "item.trainrecruits.commander_baton.desc3": "Right-click a villager of your own Recruits village: mobilise as an artillery crew (Big Cannons gun).",
   "item.trainrecruits.artillery_debug_tool": "Artillery Debug Tool",
-  "msg.trainrecruits.debug_battery_ok": "Gun built, a faction villager is manning it.",
-  "msg.trainrecruits.debug_battery_fail": "Could not build a gun here (no room, or Create Big Cannons is missing).",
+  "msg.trainrecruits.debug_battery_ok": "Post built, villager assigned.",
+  "msg.trainrecruits.debug_battery_fail": "Could not build the post: needs a flat free area of about 5x6 blocks with 6 free blocks above, or CBC did not respond.",
   "msg.trainrecruits.debug_battery_nocrew": "The gun is built but there is no faction villager nearby.",
   "block.trainrecruits.artillery_post": "Artillery Post",
-  "msg.trainrecruits.post_incomplete": "The post is incomplete: it needs 4 guns around it, each with a lever on the hammer side, a yaw controller below, a shaft at the side and a button in front.",
-  "msg.trainrecruits.post_ready": "The post is ready: 4 guns. Use the baton on a villager nearby to assign a crew."
+  "msg.trainrecruits.post_incomplete": "The post is built wrong.",
+  "msg.trainrecruits.post_ready": "The post is ready. Use the baton on a villager nearby to assign a crew.",
+  "msg.trainrecruits.crew_not_assigned": "Villager not assigned: %s",
+  "msg.trainrecruits.crew_assigned": "Villager assigned to the artillery post.",
+  "msg.trainrecruits.post_problem.no_post": "no post block nearby",
+  "msg.trainrecruits.post_problem.no_gun": "no cannon mount next to the post",
+  "msg.trainrecruits.post_problem.no_lever": "no activation lever behind the mount (hammer side)",
+  "msg.trainrecruits.post_problem.no_button": "no firing button in front of the mount",
+  "msg.trainrecruits.post_problem.no_controller": "no yaw controller next to the mount",
+  "msg.trainrecruits.post_problem.no_cannon": "no cannon on the mount (breech two blocks above it)"
 }

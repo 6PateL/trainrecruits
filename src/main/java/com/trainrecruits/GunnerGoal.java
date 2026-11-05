@@ -210,15 +210,12 @@ public class GunnerGoal extends Goal {
             }
             return;
         }
-        BlockPos gun = Battery.pick(level, post, target);
+        BlockPos gun = Battery.gunOf(level, post);
         if (gun == null) {
             clearTarget(d);
             return;
         }
-        Direction dir = Direction.NORTH;
-        for (Direction s : Battery.SIDES) {
-            if (Battery.mountOf(post, s).equals(gun)) dir = s;
-        }
+        Direction dir = Battery.facingOf(level, gun);
         if (dir != curDir || !gun.equals(lastGun)) {
             curDir = dir;
             lastGun = gun;
@@ -226,8 +223,8 @@ public class GunnerGoal extends Goal {
             setPhase(P_START);
         }
         phaseT++;
-        BlockPos lever = Battery.leverOf(post, dir);
-        BlockPos button = Battery.buttonOf(post, dir);
+        BlockPos lever = Battery.leverOf(gun, dir);
+        BlockPos button = Battery.buttonOf(gun, dir);
         Vec3 look = Vec3.atCenterOf(gun).add(0.0D, 1.5D, 0.0D);
 
         // the cannon is activated once (lever on the hammer side); if it is already running he does not touch it
@@ -237,7 +234,7 @@ public class GunnerGoal extends Goal {
                 v.getLookControl().setLookAt(Vec3.atCenterOf(lever));
                 if (phaseT % 30 == 0) {
                     v.swing(InteractionHand.MAIN_HAND);
-                    Battery.activate(level, post, dir);
+                    Battery.activate(level, gun, dir);
                     if (++activateTries > 4) {
                         activateTries = 0;
                         clearTarget(d);
@@ -313,7 +310,7 @@ public class GunnerGoal extends Goal {
                     v.getLookControl().setLookAt(Vec3.atCenterOf(button));
                     if (r.aligned()) {
                         v.swing(InteractionHand.MAIN_HAND);
-                        Battery.pressButton(level, post, dir);
+                        Battery.pressButton(level, gun, dir);
                         if (Cbc.fire(level, gun)) {
                             state(CrewEntry.FIRING);
                             int left = d.getInt(Gunners.SHOTS) - 1;

@@ -48,13 +48,11 @@ public final class CommonEvents {
         }
         event.setCanceled(true);
         event.setCancellationResult(InteractionResult.SUCCESS);
-        int n = 0;
-        for (net.minecraft.core.BlockPos g : Battery.gunsOf(level, event.getPos())) {
-            if (g != null) n++;
-        }
-        event.getEntity().displayClientMessage(n == 4
+        String problem = Battery.problem(level, event.getPos());
+        event.getEntity().displayClientMessage(problem == null
                 ? net.minecraft.network.chat.Component.translatable("msg.trainrecruits.post_ready")
-                : net.minecraft.network.chat.Component.translatable("msg.trainrecruits.post_incomplete").append(" (" + n + "/4)"), true);
+                : net.minecraft.network.chat.Component.translatable("msg.trainrecruits.crew_not_assigned",
+                        net.minecraft.network.chat.Component.translatable("msg.trainrecruits.post_problem." + problem)), true);
     }
 
     @SubscribeEvent

@@ -100,8 +100,10 @@ public final class Gunners {
             return;
         }
         BlockPos post = Battery.postNear(level, v.blockPosition(), 16);
-        if (post == null || !Battery.postReady(level, post)) {
-            player.displayClientMessage(Component.translatable("msg.trainrecruits.post_incomplete"), true);
+        String problem = post == null ? "no_post" : Battery.problem(level, post);
+        if (problem != null) {
+            player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_not_assigned",
+                    Component.translatable("msg.trainrecruits.post_problem." + problem)), true);
             return;
         }
         int cost = TrainConfig.GUNNER_COST.get();
@@ -120,7 +122,7 @@ public final class Gunners {
         v.setCustomName(Component.literal(NAME_PREFIX + base));
         v.setCustomNameVisible(true);
         attachGoal(v);
-        player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_mobilised"), true);
+        player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_assigned"), true);
         Net.sendSquads(player);
     }
 

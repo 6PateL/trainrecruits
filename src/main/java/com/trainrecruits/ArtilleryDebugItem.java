@@ -23,7 +23,7 @@ public class ArtilleryDebugItem extends Item {
             return InteractionResult.SUCCESS;
         }
         BlockPos base = ctx.getClickedPos().relative(ctx.getClickedFace());
-        BlockPos mount = Battery.buildPost(level, base);
+        BlockPos mount = Battery.buildPost(level, base, player.getDirection());
         if (mount == null) {
             player.displayClientMessage(Component.translatable("msg.trainrecruits.debug_battery_fail"), true);
             return InteractionResult.FAIL;

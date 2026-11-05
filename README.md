@@ -71,13 +71,12 @@
 
 Дебаг-тул «Artillery Debug Tool» (вкладки Інструменти/Бій/Оператор): ПКМ по землі — одразу з'являється пост із 4 гарматами, а на ньому — найближчий житель села (якщо жителя нема, створюється житель найближчого села). Якщо збірка гармат не вдалась, у лозі буде `[artillery] could not assemble`.
 
-## Artillery post (how it works now)
+## Artillery post
 
-The post block stands in the middle; four guns point N/E/S/W. Each gun is built like Create Big Cannons wants it:
-`post – lever – cannon mount – button` in a line, a **yaw controller** under the mount, a **shaft** beside it (pitch input) and
-the cannon (quick-firing breech, chamber, barrels) two blocks above the mount, lying along the line.
-The lever sits on the hammer side (assembles the cannon, pulled once and left on), the button on the firing side.
+One gun per post. In a line across the muzzle direction: post - cannon mount - yaw controller (right next to the mount, any side).
+On the mount's own axis: a lever behind it (hammer side, assembles the cannon; a button would disassemble it again on release)
+and a button in front of it (fires). The cannon (quick-firing breech, chamber, barrels) lies two blocks above the mount.
 
-The crew villager is bound to the post and stays on it. For every shot he walks to the lever side and loads a shell, then a charge,
-aims the gun (yaw/pitch are set directly), walks to the button and presses it. Shells are endless and random (HE, shrapnel, AP, solid).
-A player's crew uses the same check: the baton on a villager works only next to a complete post; the baton on the post shows its status.
+The crew villager is bound to the post and stays on it: he walks to the lever side, loads a shell and a charge, aims, walks to the
+button and presses it. Shells are endless and random. Assignment (villages and the baton) uses one check; the result, or what is wrong,
+is shown above the hotbar, not in chat.

@@ -69,10 +69,18 @@
   "msg.trainrecruits.crew_unreachable": "Розрахунок не може влучити в цю точку (поза зоною або ховає рельєф).",
   "item.trainrecruits.commander_baton.desc3": "ПКМ по жителю свого рекрутерського поселення — мобілізувати в артилерійський розрахунок (гармата Big Cannons).",
   "item.trainrecruits.artillery_debug_tool": "Дебаг-тул артилерії",
-  "msg.trainrecruits.debug_battery_ok": "Гармата збудована, розрахунок із жителя фракції на місці.",
-  "msg.trainrecruits.debug_battery_fail": "Тут не вийшло збудувати гармату (мало місця або нема Create Big Cannons).",
+  "msg.trainrecruits.debug_battery_ok": "Пост збудовано, житель призначений на розрахунок.",
+  "msg.trainrecruits.debug_battery_fail": "Не вдалося побудувати пост: потрібна рівна вільна ділянка приблизно 5x6 блоків і 6 блоків над нею, або CBC не відповів.",
   "msg.trainrecruits.debug_battery_nocrew": "Гармата є, але жителя фракції поруч нема.",
   "block.trainrecruits.artillery_post": "Артилерійський пост",
-  "msg.trainrecruits.post_incomplete": "Пост побудований неправильно: потрібні 4 гармати навколо, кожна з важелем з боку молотка, контролером рискання знизу, валом збоку та кнопкою спереду.",
-  "msg.trainrecruits.post_ready": "Пост готовий: 4 гармати. Натисни жезлом на селянина поруч, щоб призначити розрахунок."
+  "msg.trainrecruits.post_incomplete": "Пост побудований неправильно.",
+  "msg.trainrecruits.post_ready": "Пост готовий. Жезлом по жителю поруч призначиш розрахунок.",
+  "msg.trainrecruits.crew_not_assigned": "Житель не призначений: %s",
+  "msg.trainrecruits.crew_assigned": "Житель призначений на артилерійський пост.",
+  "msg.trainrecruits.post_problem.no_post": "поруч немає блока поста",
+  "msg.trainrecruits.post_problem.no_gun": "біля поста немає монтування гармати",
+  "msg.trainrecruits.post_problem.no_lever": "немає важеля активації за монтуванням (з боку молотка)",
+  "msg.trainrecruits.post_problem.no_button": "немає кнопки пострілу перед монтуванням",
+  "msg.trainrecruits.post_problem.no_controller": "немає контролера рискання поруч з монтуванням",
+  "msg.trainrecruits.post_problem.no_cannon": "на монтуванні немає гармати (казенник на 2 блоки вище)"
 }

@@ -48,6 +48,13 @@ final class Cbc {
         double lastAzErr = Double.NaN;
         double lastElErr = Double.NaN;
         boolean moved;
+        int calStage; // 0 = not calibrated, 1 = waiting for the test turn to show, 2 = calibrated
+        long calTick;
+        double calAz, calEl;
+        float calYawCmd, calPitchCmd;
+        double kYaw = 1.0D;   // world degrees of azimuth per commanded yaw degree
+        double kPitch = 1.0D; // world degrees of elevation per commanded pitch degree
+        int stable;
         Vec3 cacheTarget;
         Double cacheEl;
         long cacheTick = Long.MIN_VALUE / 2;
@@ -323,36 +330,53 @@ final class Cbc {
             double az = Math.atan2(target.z - g.spawn().z, target.x - g.spawn().x);
             double curAz = Math.atan2(g.dir().z, g.dir().x);
             double curEl = Math.asin(Mth.clamp(g.dir().y, -1.0D, 1.0D));
+
+            float yaw = cannonYaw.getFloat(be);
+            float pitch = cannonPitch.getFloat(be);
+
+            // calibration: one test turn tells how the commanded angles map to the real direction (sign and scale)
+            if (st.calStage == 0) {
+                st.calAz = curAz;
+                st.calEl = curEl;
+                st.calYawCmd = 10.0F;
+                st.calPitchCmd = pitch + 5.0F <= maxElev ? 5.0F : -5.0F;
+                setYaw.invoke(be, yaw + st.calYawCmd);
+                setPitch.invoke(be, pitch + st.calPitchCmd);
+                if (sendData != null) sendData.invoke(be);
+                st.calStage = 1;
+                st.calTick = now;
+                st.stable = 0;
+                return new Result(true, false, "");
+            }
+            if (st.calStage == 1) {
+                if (now - st.calTick < 10L) {
+                    return new Result(true, false, "");
+                }
+                double dAz = Math.toDegrees(wrap(curAz - st.calAz));
+                double dEl = Math.toDegrees(curEl - st.calEl);
+                double ky = dAz / st.calYawCmd;
+                double kp = dEl / st.calPitchCmd;
+                if (Math.abs(ky) > 0.2D) st.kYaw = ky;
+                if (Math.abs(kp) > 0.2D) st.kPitch = kp;
+                st.calStage = 2;
+                TrainRecruits.LOGGER.info("[artillery] gun calibrated: yaw x{} pitch x{}", String.format("%.2f", st.kYaw), String.format("%.2f", st.kPitch));
+                return new Result(true, false, "");
+            }
+
             double azErr = Math.toDegrees(wrap(az - curAz));
             double elErr = Math.toDegrees(el - curEl);
-
-            // the sign of the mount's rotation is not assumed: if the last step made the error worse, flip it
-            if (st.moved) {
-                if (!Double.isNaN(st.lastAzErr) && Math.abs(azErr) > Math.abs(st.lastAzErr) + 0.3D) {
-                    st.signYaw = -st.signYaw;
-                }
-                if (!Double.isNaN(st.lastElErr) && Math.abs(elErr) > Math.abs(st.lastElErr) + 0.3D) {
-                    st.signPitch = -st.signPitch;
-                }
-            }
-            st.lastAzErr = azErr;
-            st.lastElErr = elErr;
-
-            boolean aligned = Math.abs(azErr) < 0.7D && Math.abs(elErr) < 0.7D;
-            st.moved = false;
-            if (!aligned) {
+            boolean close = Math.abs(azErr) < 1.2D && Math.abs(elErr) < 1.2D;
+            st.stable = close ? st.stable + 1 : 0;
+            boolean aligned = st.stable >= 3;
+            if (!close) {
                 double turn = TrainConfig.GUN_TURN_SPEED.get();
-                float yaw = cannonYaw.getFloat(be);
-                float pitch = cannonPitch.getFloat(be);
-                float dy = (float) (Mth.clamp(azErr, -turn, turn) * st.signYaw);
-                float dp = (float) (Mth.clamp(elErr, -turn, turn) * st.signPitch);
+                // damped, so that a lagging response does not make it overshoot
+                float dy = (float) Mth.clamp(0.6D * azErr / st.kYaw, -turn, turn);
+                float dp = (float) Mth.clamp(0.6D * elErr / st.kPitch, -turn, turn);
                 float newPitch = Mth.clamp(pitch + dp, (float) -maxDep, (float) maxElev);
                 setYaw.invoke(be, yaw + dy);
                 setPitch.invoke(be, newPitch);
-                st.moved = Math.abs(dy) > 0.01F || Math.abs(newPitch - pitch) > 0.01F;
-                if (sendData != null) {
-                    sendData.invoke(be);
-                }
+                if (sendData != null) sendData.invoke(be);
             }
             return new Result(true, aligned, "");
         } catch (Throwable t) {

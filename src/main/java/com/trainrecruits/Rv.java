@@ -72,8 +72,8 @@ final class Rv {
         try {
             Object village = villageOf(level, villager);
             Object mine = factionOfPlayer.invoke(null, level, player);
-            return village != null && mine != null && !Boolean.FALSE.equals(fPlayer.invoke(village))
-                    && fGroup.invoke(village).equals(fGroup.invoke(mine));
+            // your faction: the one you founded or the one you joined (a village of the same faction group)
+            return village != null && mine != null && fGroup.invoke(village).equals(fGroup.invoke(mine));
         } catch (Throwable t) {
             TrainRecruits.LOGGER.warn("[artillery] faction check failed: {}", t.toString());
             return false;

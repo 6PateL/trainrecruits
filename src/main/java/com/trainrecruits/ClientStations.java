@@ -9,7 +9,17 @@ public final class ClientStations {
     private static volatile List<RecruitEntry> recruits = List.of();
     private static volatile List<CrewEntry> crews = List.of();
 
+    private static volatile List<SquadEntry> supply = List.of();
+
     private ClientStations() {}
+
+    public static void setSupply(List<SquadEntry> list) {
+        supply = List.copyOf(list);
+    }
+
+    public static List<SquadEntry> getSupply() {
+        return supply;
+    }
 
     public static void set(List<StationEntry> list) {
         stations = List.copyOf(list);

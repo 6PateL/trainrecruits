@@ -438,6 +438,21 @@ public class TrainMapScreen extends Screen {
             g.drawCenteredString(font, label, cx, cy - 18, sel ? 0xFFFFFF55 : 0xFFE0C0FF);
         }
 
+        // supply company: green plus
+        for (SquadEntry s : ClientStations.getSupply()) {
+            if (!s.dim().equals(dim)) {
+                continue;
+            }
+            int cx = (int) toScreenX(s.x());
+            int cy = (int) toScreenY(s.z());
+            g.fill(cx - 7, cy - 2, cx + 7, cy + 2, 0xFF000000);
+            g.fill(cx - 2, cy - 7, cx + 2, cy + 7, 0xFF000000);
+            g.fill(cx - 6, cy - 1, cx + 6, cy + 1, 0xFF3CE05A);
+            g.fill(cx - 1, cy - 6, cx + 1, cy + 6, 0xFF3CE05A);
+            g.drawCenteredString(font, Component.translatable("gui.trainrecruits.map.supply", s.size()).getString(),
+                    cx, cy - 18, 0xFF9CFFAA);
+        }
+
         // last order marker
         if (lastTarget != null) {
             g.drawCenteredString(font, "x", (int) toScreenX(lastTarget.getX() + 0.5D),

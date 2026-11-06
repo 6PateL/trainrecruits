@@ -108,5 +108,6 @@
   "msg.trainrecruits.supply_small": "Рота ще не сформована: %s з %s жителів.",
   "msg.trainrecruits.supply_build_on": "Наказ: рота будує големів.",
   "msg.trainrecruits.supply_build_off": "Наказ скасовано: големів будують лише при загрозі.",
-  "msg.trainrecruits.dark_retreat": "%s не бачить у темряві й відходить до світла."
+  "msg.trainrecruits.dark_retreat": "%s не бачить у темряві й відходить до світла.",
+  "gui.trainrecruits.map.supply": "Рота забезпечення (%s)"
 }

@@ -39,8 +39,8 @@ import java.util.UUID;
 
 /**
  * Supply company (only for the player's own faction villagers, baton mode 5). Marked with a green [+].
- * With at least 5 members the company walks with the player's recruits and: places torches, repairs and (on threat or
- * order) builds iron golems (2 per 5 members), lights campfires in cold biomes and feeds + heals nearby recruits.
+ * With at least 3 members the company walks with the player's recruits and: places torches, repairs and (on threat or
+ * order) builds iron golems (1 from 3 members, +1 for every 5), lights campfires in cold biomes and feeds + heals nearby recruits.
  */
 @Mod.EventBusSubscriber(modid = TrainRecruits.MODID)
 public final class Supply {
@@ -163,7 +163,10 @@ public final class Supply {
     }
 
     static int golemCap(int members) {
-        return members / 5 * TrainConfig.SUPPLY_GOLEMS_PER_FIVE.get();
+        if (members < TrainConfig.SUPPLY_MIN.get()) {
+            return 0;
+        }
+        return 1 + members / 5 * TrainConfig.SUPPLY_GOLEMS_PER_FIVE.get();
     }
 
     // ------------------------------------------------------------------ company work (once a second)

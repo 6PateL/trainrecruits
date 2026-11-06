@@ -129,9 +129,9 @@ public class TrainConfig {
         SUPPLY = b.comment("Supply company (baton mode 5): torches, golem repair and building, winter campfires, food and regeneration for your recruits.")
                 .define("enabled", true);
         SUPPLY_MIN = b.comment("Villagers needed for a company to work.")
-                .defineInRange("minMembers", 5, 1, 50);
-        SUPPLY_GOLEMS_PER_FIVE = b.comment("Golems a company may keep per 5 members.")
-                .defineInRange("golemsPerFive", 2, 0, 10);
+                .defineInRange("minMembers", 3, 1, 50);
+        SUPPLY_GOLEMS_PER_FIVE = b.comment("Golems a company may keep: 1 from the minimum size, plus this many for every full 5 members.")
+                .defineInRange("golemsPerFive", 1, 0, 10);
         b.pop();
         SPEC = b.build();
     }

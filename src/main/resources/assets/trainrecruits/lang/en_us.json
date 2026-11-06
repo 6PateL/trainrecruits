@@ -108,5 +108,6 @@
   "msg.trainrecruits.supply_small": "The company is not formed yet: %s of %s villagers.",
   "msg.trainrecruits.supply_build_on": "Order: the company builds golems.",
   "msg.trainrecruits.supply_build_off": "Order cancelled: golems are built only on a threat.",
-  "msg.trainrecruits.dark_retreat": "%s cannot see in the dark and falls back to the light."
+  "msg.trainrecruits.dark_retreat": "%s cannot see in the dark and falls back to the light.",
+  "gui.trainrecruits.map.supply": "Supply company (%s)"
 }

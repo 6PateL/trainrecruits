@@ -53,6 +53,7 @@ public final class Net {
         CHANNEL.registerMessage(id++, RecruitList.class, RecruitList::encode, RecruitList::decode, RecruitList::handle);
         CHANNEL.registerMessage(id++, SquadAssign.class, SquadAssign::encode, SquadAssign::decode, SquadAssign::handle);
         CHANNEL.registerMessage(id++, CrewList.class, CrewList::encode, CrewList::decode, CrewList::handle);
+        CHANNEL.registerMessage(id++, SupplyList.class, SupplyList::encode, SupplyList::decode, SupplyList::handle);
         CHANNEL.registerMessage(id++, CrewCommand.class, CrewCommand::encode, CrewCommand::decode, CrewCommand::handle);
         CHANNEL.registerMessage(id++, BatonMode.class, BatonMode::encode, BatonMode::decode, BatonMode::handle);
     }
@@ -113,6 +114,43 @@ public final class Net {
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SquadList(squads));
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new RecruitList(recruits));
         CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new CrewList(crews));
+        List<SquadEntry> supply = new ArrayList<>();
+        List<net.minecraft.world.entity.npc.Villager> sm = Supply.members(player);
+        if (!sm.isEmpty()) {
+            double sx = 0, sz = 0;
+            for (net.minecraft.world.entity.npc.Villager v : sm) {
+                sx += v.getX();
+                sz += v.getZ();
+            }
+            supply.add(new SquadEntry(player.getUUID(), "S", player.level().dimension().location().toString(),
+                    sx / sm.size(), sz / sm.size(), sm.size(), false));
+        }
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), new SupplyList(supply));
+    }
+
+    /** Supply company marker (green plus), display only. */
+    public record SupplyList(List<SquadEntry> list) {
+        static void encode(SupplyList m, FriendlyByteBuf buf) {
+            buf.writeVarInt(m.list.size());
+            for (SquadEntry e : m.list) {
+                e.write(buf);
+            }
+        }
+
+        static SupplyList decode(FriendlyByteBuf buf) {
+            int n = buf.readVarInt();
+            List<SquadEntry> l = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                l.add(SquadEntry.read(buf));
+            }
+            return new SupplyList(l);
+        }
+
+        static void handle(SupplyList m, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> ClientStations.setSupply(m.list)));
+            c.setPacketHandled(true);
+        }
     }
 
     public static void sendList(ServerPlayer player) {

@@ -53,6 +53,7 @@ public final class Supply {
     private static final Map<UUID, Vec3> ANCHOR = new HashMap<>();
     private static final Map<UUID, Long> BUSY = new HashMap<>();
     private static final Map<UUID, Long> NEXT_TORCH = new HashMap<>();
+    private static final Map<UUID, Vec3> LAST_ANCHOR = new HashMap<>();
     private static final Map<UUID, Long> NEXT_GOLEM = new HashMap<>();
     private static final Map<UUID, Long> NEXT_FIRE = new HashMap<>();
     private static final Map<UUID, List<BlockPos>> FIRES = new HashMap<>();
@@ -274,6 +275,21 @@ public final class Supply {
             anchor = new Vec3(x / troops.size(), y / troops.size(), z / troops.size());
         }
         ANCHOR.put(p.getUUID(), anchor);
+        // "arrived": at the held / ordered point (most of the company close to it); a following company counts as
+        // arrived while it stands still. A company on the march neither lights nor builds.
+        boolean arrived;
+        if (order.follow) {
+            Vec3 last = LAST_ANCHOR.put(p.getUUID(), anchor);
+            arrived = last != null && last.distanceToSqr(anchor) < 2.0D * 2.0D;
+        } else {
+            int near = 0;
+            for (Villager v : list) {
+                if (v.isPassenger() || v.position().distanceToSqr(anchor) <= 12.0D * 12.0D) {
+                    near++;
+                }
+            }
+            arrived = near * 2 >= list.size();
+        }
         int n = list.size();
         if (n < TrainConfig.SUPPLY_MIN.get()) {
             return; // not a company yet
@@ -296,8 +312,8 @@ public final class Supply {
             if (BUSY.getOrDefault(v.getUUID(), 0L) > now || NEXT_TORCH.getOrDefault(v.getUUID(), 0L) > now) {
                 continue;
             }
-            if (v.isPassenger()) {
-                continue;
+            if (v.isPassenger() || !arrived) {
+                continue; // torches are put up once the company stands at its point
             }
             if (placeTorch(level, v) || lightChunk(level, v, anchor, now)) {
                 NEXT_TORCH.put(v.getUUID(), now + 80);
@@ -340,10 +356,11 @@ public final class Supply {
             }
         }
         boolean order = list.get(0).getPersistentData().getBoolean(BUILD);
-        boolean threat = !level.getEntitiesOfClass(Monster.class, new AABB(ap).inflate(24.0D, 12.0D, 24.0D), Monster::isAlive).isEmpty();
-        if ((order || threat) && mine < golemCap(n) && NEXT_GOLEM.getOrDefault(p.getUUID(), 0L) <= now) {
+        // the company sees every threat, dark or not
+        boolean threat = !level.getEntitiesOfClass(Monster.class, new AABB(ap).inflate(32.0D, 14.0D, 32.0D), Monster::isAlive).isEmpty();
+        if (arrived && (order || threat) && mine < golemCap(n) && NEXT_GOLEM.getOrDefault(p.getUUID(), 0L) <= now) {
             if (buildGolem(level, p, list.get(level.random.nextInt(list.size())))) {
-                NEXT_GOLEM.put(p.getUUID(), now + 600);
+                NEXT_GOLEM.put(p.getUUID(), now + TrainConfig.SUPPLY_GOLEM_COOLDOWN.get() * 20L);
             }
         }
 

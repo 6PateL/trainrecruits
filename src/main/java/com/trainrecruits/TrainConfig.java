@@ -45,6 +45,7 @@ public class TrainConfig {
     public static final ForgeConfigSpec.BooleanValue SUPPLY;
     public static final ForgeConfigSpec.IntValue SUPPLY_MIN;
     public static final ForgeConfigSpec.IntValue SUPPLY_GOLEMS_PER_FIVE;
+    public static final ForgeConfigSpec.IntValue SUPPLY_GOLEM_COOLDOWN;
 
     static {
         ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
@@ -130,6 +131,8 @@ public class TrainConfig {
                 .define("enabled", true);
         SUPPLY_MIN = b.comment("Villagers needed for a company to work.")
                 .defineInRange("minMembers", 3, 1, 50);
+        SUPPLY_GOLEM_COOLDOWN = b.comment("Seconds between two golems built by the same company.")
+                .defineInRange("golemCooldownSeconds", 180, 10, 3600);
         SUPPLY_GOLEMS_PER_FIVE = b.comment("Golems a company may keep: 1 from the minimum size, plus this many for every full 5 members.")
                 .defineInRange("golemsPerFive", 1, 0, 10);
         b.pop();

@@ -84,6 +84,9 @@ public final class Gunners {
             v.setCustomNameVisible(false);
         }
         v.goalSelector.removeAllGoals(g -> g instanceof GunnerGoal);
+        if (!Follow.isFollowing(v)) {
+            Rv.reattach(v);
+        }
         if (v.level() instanceof ServerLevel sl) {
             v.refreshBrain(sl); // the schedule, work and sleep come back
         }
@@ -126,6 +129,7 @@ public final class Gunners {
         d.putUUID(OWNER, player.getUUID());
         d.putLong(MOUNT, post.asLong());
         d.putBoolean(AUTO, TrainConfig.GUN_AUTO.get());
+        Rv.detach(v);
         Component custom = v.getCustomName();
         String base = custom != null ? custom.getString() : v.getName().getString();
         v.setCustomName(Component.literal(NAME_PREFIX + base));

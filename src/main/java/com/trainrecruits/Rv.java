@@ -59,10 +59,31 @@ final class Rv {
     /** The village (faction record) a villager was spawned for, or null. */
     static Object villageOf(ServerLevel level, Entity villager) throws Exception {
         CompoundTag d = villager.getPersistentData();
-        if (!d.hasUUID(VILLAGER_TAG)) {
+        String key = d.hasUUID(VILLAGER_TAG) ? VILLAGER_TAG : d.hasUUID(SAVED_TAG) ? SAVED_TAG : null;
+        if (key == null) {
             return null;
         }
-        return getFaction.invoke(dataGet.invoke(null, level.getServer()), d.getUUID(VILLAGER_TAG));
+        return getFaction.invoke(dataGet.invoke(null, level.getServer()), d.getUUID(key));
+    }
+
+    private static final String SAVED_TAG = "trainrecruits_rvfac";
+
+    /** Hides the RV tag so that RV no longer re-hires the mobilised villager into a new building. */
+    static void detach(Entity villager) {
+        CompoundTag d = villager.getPersistentData();
+        if (d.hasUUID(VILLAGER_TAG)) {
+            d.putUUID(SAVED_TAG, d.getUUID(VILLAGER_TAG));
+            d.remove(VILLAGER_TAG);
+        }
+    }
+
+    /** Gives the RV tag back when the villager is released. */
+    static void reattach(Entity villager) {
+        CompoundTag d = villager.getPersistentData();
+        if (d.hasUUID(SAVED_TAG)) {
+            d.putUUID(VILLAGER_TAG, d.getUUID(SAVED_TAG));
+            d.remove(SAVED_TAG);
+        }
     }
 
     static boolean isMyVillager(ServerLevel level, ServerPlayer player, Entity villager) {

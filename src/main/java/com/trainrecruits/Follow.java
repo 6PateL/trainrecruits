@@ -43,6 +43,11 @@ final class Follow {
         }
         d.putBoolean(TAG, true);
         d.putUUID(OWNER, player.getUUID());
+        Rv.detach(v);
+        if (v.getCustomName() == null) {
+            v.setCustomName(Component.literal("[>] " + v.getName().getString()));
+            v.setCustomNameVisible(true);
+        }
         attach(v);
         player.displayClientMessage(Component.translatable("msg.trainrecruits.follow_started"), true);
     }
@@ -59,6 +64,14 @@ final class Follow {
         v.getPersistentData().remove(TAG);
         v.getPersistentData().remove(OWNER);
         v.goalSelector.removeAllGoals(g -> g instanceof FollowGoal);
+        if (!Gunners.isGunner(v)) {
+            Rv.reattach(v);
+            Component c = v.getCustomName();
+            if (c != null && c.getString().startsWith("[>] ")) {
+                v.setCustomName(null);
+                v.setCustomNameVisible(false);
+            }
+        }
         if (v.level() instanceof ServerLevel sl) {
             v.refreshBrain(sl);
         }

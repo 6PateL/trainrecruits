@@ -116,7 +116,8 @@ public final class Darkness {
     private static void retreat(AbstractRecruitEntity r, BlockPos spot, State s) {
         r.getNavigation().moveTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D, 1.15D);
         long now = r.level().getGameTime();
-        if (now >= s.nextWarn && r.getOwner() instanceof Player p && p.distanceToSqr(r) < 1600.0D) {
+        Player p = r.getOwner();
+        if (now >= s.nextWarn && p != null && p.distanceToSqr(r) < 1600.0D) {
             s.nextWarn = now + 200;
             p.displayClientMessage(Component.translatable("msg.trainrecruits.dark_retreat", r.getName()), true);
         }

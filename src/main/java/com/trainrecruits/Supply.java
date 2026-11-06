@@ -352,7 +352,7 @@ public final class Supply {
         }
 
         private ServerPlayer owner() {
-            UUID id = owner(v);
+            UUID id = Supply.owner(v);
             if (id == null || !(v.level() instanceof ServerLevel level)) {
                 return null;
             }

@@ -89,7 +89,7 @@
   "baton.mode.1": "Зняти генеральський чин",
   "baton.mode.2": "Приписати жителя до гармати",
   "baton.mode.3": "Повести жителя за собою",
-  "baton.mode.4": "Рота забезпечення (скоро)",
+  "baton.mode.4": "Рота забезпечення (+)",
   "item.trainrecruits.commander_baton.mode": "Режим: %s",
   "msg.trainrecruits.baton_mode_set": "Режим жезла: %s",
   "msg.trainrecruits.baton_wrong_target": "Цей режим працює з іншою ціллю.",
@@ -99,5 +99,14 @@
   "msg.trainrecruits.follow_started": "Житель іде за тобою.",
   "msg.trainrecruits.follow_stopped": "Житель більше не йде за тобою.",
   "msg.trainrecruits.follow_gunner": "Цей житель на розрахунку.",
-  "msg.trainrecruits.crew_died_dismantled": "Розрахунок загинув, гармату розібрано. Збери її знову сам."
+  "msg.trainrecruits.crew_died_dismantled": "Розрахунок загинув, гармату розібрано. Збери її знову сам.",
+  "msg.trainrecruits.supply_added": "Житель у роті забезпечення: %s/%s (рота ще не сформована).",
+  "msg.trainrecruits.supply_formed": "Рота забезпечення сформована: %s жителів, до %s големів.",
+  "msg.trainrecruits.supply_removed": "Житель покинув роту забезпечення (залишилось %s).",
+  "msg.trainrecruits.supply_not_faction": "У роту забезпечення беруться лише звичайні жителі твоєї фракції (створеної або тієї, до якої ти приєднався).",
+  "msg.trainrecruits.supply_busy": "Цей житель уже на розрахунку або веде за тобою.",
+  "msg.trainrecruits.supply_small": "Рота ще не сформована: %s з %s жителів.",
+  "msg.trainrecruits.supply_build_on": "Наказ: рота будує големів.",
+  "msg.trainrecruits.supply_build_off": "Наказ скасовано: големів будують лише при загрозі.",
+  "msg.trainrecruits.dark_retreat": "%s не бачить у темряві й відходить до світла."
 }

@@ -89,7 +89,7 @@
   "baton.mode.1": "Remove general rank",
   "baton.mode.2": "Assign villager to a gun",
   "baton.mode.3": "Lead a villager",
-  "baton.mode.4": "Supply company (soon)",
+  "baton.mode.4": "Supply company (+)",
   "item.trainrecruits.commander_baton.mode": "Mode: %s",
   "msg.trainrecruits.baton_mode_set": "Baton mode: %s",
   "msg.trainrecruits.baton_wrong_target": "This mode works on another kind of target.",
@@ -99,5 +99,14 @@
   "msg.trainrecruits.follow_started": "The villager follows you.",
   "msg.trainrecruits.follow_stopped": "The villager no longer follows you.",
   "msg.trainrecruits.follow_gunner": "This villager is a gun crew.",
-  "msg.trainrecruits.crew_died_dismantled": "The crew died and the gun was taken apart. Build it again yourself."
+  "msg.trainrecruits.crew_died_dismantled": "The crew died and the gun was taken apart. Build it again yourself.",
+  "msg.trainrecruits.supply_added": "Villager joined the supply company: %s/%s (not formed yet).",
+  "msg.trainrecruits.supply_formed": "Supply company formed: %s villagers, up to %s golems.",
+  "msg.trainrecruits.supply_removed": "Villager left the supply company (%s left).",
+  "msg.trainrecruits.supply_not_faction": "Only ordinary villagers of your own faction (founded or joined) can join the supply company.",
+  "msg.trainrecruits.supply_busy": "This villager is already a gunner or follows you.",
+  "msg.trainrecruits.supply_small": "The company is not formed yet: %s of %s villagers.",
+  "msg.trainrecruits.supply_build_on": "Order: the company builds golems.",
+  "msg.trainrecruits.supply_build_off": "Order cancelled: golems are built only on a threat.",
+  "msg.trainrecruits.dark_retreat": "%s cannot see in the dark and falls back to the light."
 }

@@ -37,6 +37,14 @@ public class TrainConfig {
     public static final ForgeConfigSpec.BooleanValue GUN_AUTO_BARBARIANS;
     public static final ForgeConfigSpec.IntValue GUN_FRIENDLY_CLEARANCE;
     public static final ForgeConfigSpec.ConfigValue<String> GUN_AMMO;
+    public static final ForgeConfigSpec.BooleanValue DARKNESS;
+    public static final ForgeConfigSpec.IntValue DARK_LEVEL;
+    public static final ForgeConfigSpec.IntValue PITCH_LEVEL;
+    public static final ForgeConfigSpec.IntValue DARK_MARGIN;
+    public static final ForgeConfigSpec.IntValue DARK_MISS_PERCENT;
+    public static final ForgeConfigSpec.BooleanValue SUPPLY;
+    public static final ForgeConfigSpec.IntValue SUPPLY_MIN;
+    public static final ForgeConfigSpec.IntValue SUPPLY_GOLEMS_PER_FIVE;
 
     static {
         ForgeConfigSpec.Builder b = new ForgeConfigSpec.Builder();
@@ -104,6 +112,26 @@ public class TrainConfig {
                 .defineInRange("minPopulation", 12, 1, 500);
         VILLAGE_GUN_RETRY_MIN = b.comment("Minutes between attempts to build a gun in the same village.")
                 .defineInRange("retryMinutes", 3, 1, 600);
+        b.pop();
+        b.push("darkness");
+        DARKNESS = b.comment("Soldiers (Recruits) get lost in the dark: they flee to light, lose sight of targets, miss and hit at random.")
+                .define("enabled", true);
+        DARK_LEVEL = b.comment("Light level at or below which it is dark for a soldier (night in the open is 4, so only caves, unlit rooms and storms count).")
+                .defineInRange("darkLevel", 3, 0, 14);
+        PITCH_LEVEL = b.comment("Light level at or below which it is pitch black (blind, many misses).")
+                .defineInRange("pitchLevel", 0, 0, 14);
+        DARK_MARGIN = b.comment("In a fight soldiers may step this many blocks out of the light before they retreat.")
+                .defineInRange("fightMargin", 6, 1, 24);
+        DARK_MISS_PERCENT = b.comment("Chance (percent) that a soldier cornered in the dark misses; pitch black is 1.5 times higher.")
+                .defineInRange("missPercent", 40, 0, 100);
+        b.pop();
+        b.push("supply");
+        SUPPLY = b.comment("Supply company (baton mode 5): torches, golem repair and building, winter campfires, food and regeneration for your recruits.")
+                .define("enabled", true);
+        SUPPLY_MIN = b.comment("Villagers needed for a company to work.")
+                .defineInRange("minMembers", 5, 1, 50);
+        SUPPLY_GOLEMS_PER_FIVE = b.comment("Golems a company may keep per 5 members.")
+                .defineInRange("golemsPerFive", 2, 0, 10);
         b.pop();
         SPEC = b.build();
     }

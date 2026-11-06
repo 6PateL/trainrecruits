@@ -84,7 +84,7 @@ public final class Gunners {
             v.setCustomNameVisible(false);
         }
         v.goalSelector.removeAllGoals(g -> g instanceof GunnerGoal);
-        if (!Follow.isFollowing(v)) {
+        if (!Follow.isFollowing(v) && !Supply.isSupply(v)) {
             Rv.reattach(v);
         }
         if (v.level() instanceof ServerLevel sl) {

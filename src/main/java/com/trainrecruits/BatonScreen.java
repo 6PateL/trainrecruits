@@ -30,7 +30,6 @@ public class BatonScreen extends Screen {
                 Net.CHANNEL.sendToServer(new Net.BatonMode((byte) mode));
                 this.onClose();
             }).bounds(x, y + i * 24, w, 20).build();
-            b.active = i != BatonItem.MODE_SUPPLY; // slot 5 is reserved
             this.addRenderableWidget(b);
         }
     }

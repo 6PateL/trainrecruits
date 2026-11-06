@@ -19,7 +19,9 @@ public final class CommonEvents {
     public static void onEntityInteract(PlayerInteractEvent.EntityInteract event) {
         if (event.getHand() != InteractionHand.MAIN_HAND
                 || !(event.getItemStack().getItem() instanceof BatonItem)
-                || !(event.getTarget() instanceof AbstractRecruitEntity || event.getTarget() instanceof Villager)) {
+                || !(event.getTarget() instanceof AbstractRecruitEntity || event.getTarget() instanceof Villager
+                || (event.getTarget() instanceof net.minecraft.world.entity.animal.IronGolem
+                && BatonItem.mode(event.getItemStack()) == BatonItem.MODE_SUPPLY))) {
             return;
         }
         // never open the target's own GUI with the baton
@@ -47,14 +49,22 @@ public final class CommonEvents {
             }
             return;
         }
+        if (event.getTarget() instanceof net.minecraft.world.entity.animal.IronGolem) {
+            Supply.orderGolems(player);
+            return;
+        }
         Villager villager = (Villager) event.getTarget();
         switch (mode) {
             case BatonItem.MODE_GUN -> {
                 if (Follow.isFollowing(villager)) Follow.release(villager);
+                if (Supply.isSupply(villager)) Supply.release(villager);
                 Gunners.toggle(player, villager);
             }
-            case BatonItem.MODE_LEAD -> Follow.toggle(player, villager);
-            case BatonItem.MODE_SUPPLY -> player.displayClientMessage(Component.translatable("msg.trainrecruits.baton_reserved"), true);
+            case BatonItem.MODE_LEAD -> {
+                if (Supply.isSupply(villager)) Supply.release(villager);
+                Follow.toggle(player, villager);
+            }
+            case BatonItem.MODE_SUPPLY -> Supply.toggle(player, villager);
             default -> player.displayClientMessage(Component.translatable("msg.trainrecruits.baton_wrong_target"), true);
         }
     }
@@ -82,6 +92,8 @@ public final class CommonEvents {
                 Gunners.attachGoal(v);
             } else if (Follow.isFollowing(v)) {
                 Follow.attach(v);
+            } else if (Supply.isSupply(v)) {
+                Supply.attach(v);
             }
         }
     }

@@ -27,7 +27,7 @@ final class Follow {
             player.displayClientMessage(Component.translatable("msg.trainrecruits.crew_not_faction"), true);
             return;
         }
-        if (Gunners.isGunner(v)) {
+        if (Gunners.isGunner(v) || Supply.isSupply(v)) {
             player.displayClientMessage(Component.translatable("msg.trainrecruits.follow_gunner"), true);
             return;
         }
@@ -64,7 +64,7 @@ final class Follow {
         v.getPersistentData().remove(TAG);
         v.getPersistentData().remove(OWNER);
         v.goalSelector.removeAllGoals(g -> g instanceof FollowGoal);
-        if (!Gunners.isGunner(v)) {
+        if (!Gunners.isGunner(v) && !Supply.isSupply(v)) {
             Rv.reattach(v);
             Component c = v.getCustomName();
             if (c != null && c.getString().startsWith("[>] ")) {

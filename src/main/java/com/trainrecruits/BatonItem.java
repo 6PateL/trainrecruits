@@ -15,7 +15,7 @@ public class BatonItem extends Item {
     public static final int MODE_DEGRADE = 1;
     public static final int MODE_GUN = 2;
     public static final int MODE_LEAD = 3;
-    public static final int MODE_SUPPLY = 4; // reserved
+    public static final int MODE_SUPPLY = 4;
     public static final int MODES = 5;
     private static final String TAG = "tr_mode";
 

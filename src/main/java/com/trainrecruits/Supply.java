@@ -108,6 +108,7 @@ public final class Supply {
         player.displayClientMessage(n >= min
                 ? Component.translatable("msg.trainrecruits.supply_formed", n, golemCap(n))
                 : Component.translatable("msg.trainrecruits.supply_added", n, min), true);
+        Net.sendSquads(player);
     }
 
     /** Baton mode 5 on an iron golem: switches the standing order "build golems" for the whole company. */

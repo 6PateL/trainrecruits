@@ -55,6 +55,7 @@ public final class Net {
         CHANNEL.registerMessage(id++, CrewList.class, CrewList::encode, CrewList::decode, CrewList::handle);
         CHANNEL.registerMessage(id++, SupplyList.class, SupplyList::encode, SupplyList::decode, SupplyList::handle);
         CHANNEL.registerMessage(id++, CrewCommand.class, CrewCommand::encode, CrewCommand::decode, CrewCommand::handle);
+        CHANNEL.registerMessage(id++, SupplyCommand.class, SupplyCommand::encode, SupplyCommand::decode, SupplyCommand::handle);
         CHANNEL.registerMessage(id++, InfoRequest.class, InfoRequest::encode, InfoRequest::decode, InfoRequest::handle);
         CHANNEL.registerMessage(id++, InfoData.class, InfoData::encode, InfoData::decode, InfoData::handle);
         CHANNEL.registerMessage(id++, BatonMode.class, BatonMode::encode, BatonMode::decode, BatonMode::handle);
@@ -547,6 +548,29 @@ public final class Net {
         static void handle(InfoData m, Supplier<NetworkEvent.Context> ctx) {
             NetworkEvent.Context c = ctx.get();
             c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> InfoScreen.show(m.grudges, m.raids)));
+            c.setPacketHandled(true);
+        }
+    }
+
+    /** Map -> server: order for the player's supply company (move / hold / follow). */
+    public record SupplyCommand(byte action, BlockPos pos) {
+        static void encode(SupplyCommand m, FriendlyByteBuf buf) {
+            buf.writeByte(m.action);
+            buf.writeBlockPos(m.pos);
+        }
+
+        static SupplyCommand decode(FriendlyByteBuf buf) {
+            return new SupplyCommand(buf.readByte(), buf.readBlockPos());
+        }
+
+        static void handle(SupplyCommand m, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> {
+                ServerPlayer player = c.getSender();
+                if (player != null) {
+                    Supply.command(player, m.action, m.pos);
+                }
+            });
             c.setPacketHandled(true);
         }
     }

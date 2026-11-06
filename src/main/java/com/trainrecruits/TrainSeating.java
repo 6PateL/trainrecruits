@@ -179,6 +179,9 @@ public final class TrainSeating {
                 RecruitCommanderUtil.setRecruitsMove(List.of(r), BlockPos.containing(best.pos()));
             }
         }
+        int[] sup = Supply.board(level, center, owner, slots, orders, now);
+        seated += sup[0];
+        pending += sup[1];
         return new Step(seated, pending, unassigned, !trains.isEmpty());
     }
 
@@ -215,6 +218,12 @@ public final class TrainSeating {
                     leader.setPatrolState(AbstractLeaderEntity.State.fromIndex(data.getByte(PREV_STATE_TAG)));
                     data.remove(PREV_STATE_TAG);
                 }
+            }
+        }
+        for (UUID id : orders.keySet()) {
+            if (level.getEntity(id) instanceof net.minecraft.world.entity.npc.Villager v) {
+                v.getNavigation().stop();
+                Supply.BOARD.remove(id);
             }
         }
         orders.clear();
@@ -260,7 +269,15 @@ public final class TrainSeating {
                 riders.add(r);
             }
         }
-        if (riders.isEmpty()) {
+        List<net.minecraft.world.entity.npc.Villager> crew = new ArrayList<>();
+        for (AbstractContraptionEntity train : trains) {
+            for (Entity p : train.getPassengers()) {
+                if (p instanceof net.minecraft.world.entity.npc.Villager v && Supply.isSupply(v) && owner.equals(Supply.owner(v))) {
+                    crew.add(v);
+                }
+            }
+        }
+        if (riders.isEmpty() && crew.isEmpty()) {
             return 0;
         }
         // commanders last so they step off after their soldiers
@@ -289,7 +306,20 @@ public final class TrainSeating {
             r.fallDistance = 0.0F;
             afterDisembark(r, owner);
         }
-        return riders.size();
+        for (net.minecraft.world.entity.npc.Villager v : crew) {
+            v.stopRiding();
+            Vec3 spot = findDropSpot(level, center, trains, used, true);
+            if (spot == null) {
+                spot = findDropSpot(level, center, trains, used, false);
+            }
+            if (spot != null) {
+                used.add(spot);
+                v.teleportTo(spot.x, spot.y, spot.z);
+            }
+            v.setDeltaMovement(Vec3.ZERO);
+            v.fallDistance = 0.0F;
+        }
+        return riders.size() + crew.size();
     }
 
     private static void afterDisembark(AbstractRecruitEntity r, UUID owner) {

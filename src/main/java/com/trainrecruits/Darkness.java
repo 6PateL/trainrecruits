@@ -11,14 +11,21 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.entity.projectile.Projectile;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.WeakHashMap;
 
 /**
@@ -42,6 +49,26 @@ public final class Darkness {
 
     private Darkness() {}
 
+    private static final Map<UUID, Long> LAST_LOG = new HashMap<>();
+    private static final List<Projectile> PENDING = new ArrayList<>();
+
+    private static void debug(AbstractRecruitEntity r, String what) {
+        long now = r.level().getGameTime();
+        Long last = LAST_LOG.get(r.getUUID());
+        if (last == null || now - last > 100L) {
+            LAST_LOG.put(r.getUUID(), now);
+            TrainRecruits.LOGGER.info("[dark] {} {}", r.getName().getString(), what);
+        }
+    }
+
+    /** A target standing in the dark (and not right next to the soldier) cannot be seen, whatever the soldier's own light is. */
+    private static boolean unseen(AbstractRecruitEntity r, LivingEntity t) {
+        if (blind(r) || r.distanceTo(t) <= 4.0D) {
+            return false;
+        }
+        return light(r.level(), t.blockPosition()) <= TrainConfig.DARK_LEVEL.get();
+    }
+
     private static int light(Level level, BlockPos p) {
         return level.getMaxLocalRawBrightness(p);
     }
@@ -55,6 +82,12 @@ public final class Darkness {
         if (!(event.getEntity() instanceof AbstractRecruitEntity r) || r.level().isClientSide || !TrainConfig.DARKNESS.get()
                 || !r.isAlive() || (r.tickCount + r.getId()) % 10 != 0) {
             return;
+        }
+        LivingEntity seen = r.getTarget();
+        if (seen != null && r.getLastHurtByMob() != seen && unseen(r, seen)) {
+            debug(r, "lost target " + seen.getName().getString() + ": it stands in the dark (light "
+                    + light(r.level(), seen.blockPosition()) + ", dist " + (int) r.distanceTo(seen) + ")");
+            r.setTarget(null);
         }
         Level level = r.level();
         State s = STATES.computeIfAbsent(r, k -> new State());
@@ -179,6 +212,10 @@ public final class Darkness {
                 || event.getNewTarget() == null || blind(r)) {
             return;
         }
+        if (r.getLastHurtByMob() != event.getNewTarget() && unseen(r, event.getNewTarget())) {
+            event.setCanceled(true);
+            return;
+        }
         int here = light(r.level(), r.blockPosition());
         if (here <= TrainConfig.DARK_LEVEL.get() && r.distanceTo(event.getNewTarget()) > sightRange(here)
                 && r.getLastHurtByMob() != event.getNewTarget()) {
@@ -202,6 +239,69 @@ public final class Darkness {
         if (r.getRandom().nextDouble() < chance) {
             event.setCanceled(true); // missed in the dark
             r.level().playSound(null, r.blockPosition(), SoundEvents.PLAYER_ATTACK_NODAMAGE, SoundSource.NEUTRAL, 0.6F, 0.9F);
+        }
+    }
+
+    // ------------------------------------------------------------------ shooting blind (all ranged weapons)
+
+    @SubscribeEvent
+    public static void onProjectile(EntityJoinLevelEvent event) {
+        if (event.getLevel().isClientSide || !TrainConfig.DARKNESS.get() || !(event.getEntity() instanceof Projectile pr)) {
+            return;
+        }
+        AbstractRecruitEntity r = pr.getOwner() instanceof AbstractRecruitEntity o ? o : null;
+        if (r == null) {
+            for (AbstractRecruitEntity n : event.getLevel().getEntitiesOfClass(AbstractRecruitEntity.class,
+                    pr.getBoundingBox().inflate(2.5D), e -> e.isAlive() && e.getTarget() != null)) {
+                r = n;
+                break;
+            }
+        }
+        if (r == null || blind(r)) {
+            return;
+        }
+        int here = light(r.level(), r.blockPosition());
+        LivingEntity t = r.getTarget();
+        boolean targetDark = t != null && unseen(r, t);
+        boolean selfDark = here <= TrainConfig.DARK_LEVEL.get();
+        if (!targetDark && !selfDark) {
+            return;
+        }
+        double chance = targetDark ? 0.85D : TrainConfig.DARK_MISS_PERCENT.get() * (here <= TrainConfig.PITCH_LEVEL.get() ? 1.5D : 1.0D) / 100.0D;
+        if (r.getRandom().nextDouble() < chance) {
+            debug(r, "shoots blind (own light " + here + ", target dark " + targetDark + "): the shot goes astray");
+            synchronized (PENDING) {
+                PENDING.add(pr);
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event) {
+        if (event.phase != TickEvent.Phase.END) {
+            return;
+        }
+        List<Projectile> work;
+        synchronized (PENDING) {
+            if (PENDING.isEmpty()) {
+                return;
+            }
+            work = new ArrayList<>(PENDING);
+            PENDING.clear();
+        }
+        for (Projectile pr : work) {
+            Vec3 v = pr.getDeltaMovement();
+            double speed = v.length();
+            if (pr.isRemoved() || speed < 0.05D) {
+                continue;
+            }
+            double yaw = (pr.getRandom().nextDouble() - 0.5D) * 2.0D * 0.5D;
+            double pitch = (pr.getRandom().nextDouble() - 0.5D) * 2.0D * 0.25D;
+            double cos = Math.cos(yaw);
+            double sin = Math.sin(yaw);
+            double nx = v.x * cos - v.z * sin;
+            double nz = v.x * sin + v.z * cos;
+            pr.shoot(nx, v.y + pitch * speed, nz, (float) speed, 0.0F);
         }
     }
 }

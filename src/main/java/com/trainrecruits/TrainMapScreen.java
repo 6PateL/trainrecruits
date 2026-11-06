@@ -46,6 +46,7 @@ public class TrainMapScreen extends Screen {
 
     private UUID selSquad;
     private UUID selCrew;
+    private boolean selSupply;
     private BlockPos selStation;
     private BlockPos lastTarget;
     private int refreshTimer;
@@ -253,7 +254,10 @@ public class TrainMapScreen extends Screen {
     }
 
     private void squadOrder(byte action) {
-        if (selSquad != null) {
+        if (selSupply) {
+            Net.CHANNEL.sendToServer(new Net.SupplyCommand(action, BlockPos.ZERO));
+            refreshTimer = 5;
+        } else if (selSquad != null) {
             Net.CHANNEL.sendToServer(new Net.SquadCommand(selSquad, action, BlockPos.ZERO));
         }
     }
@@ -298,8 +302,8 @@ public class TrainMapScreen extends Screen {
         rebuildRows();
         addFreeBtn.active = squad != null;
         clearBtn.active = squad != null;
-        holdBtn.active = squad != null;
-        followBtn.active = squad != null;
+        holdBtn.active = squad != null || selSupply;
+        followBtn.active = squad != null || selSupply;
         stationBtn.active = station != null;
         autoBtn.active = station != null;
         CrewEntry crew = selectedCrew();
@@ -445,8 +449,9 @@ public class TrainMapScreen extends Screen {
             }
             int cx = (int) toScreenX(s.x());
             int cy = (int) toScreenY(s.z());
-            g.fill(cx - 7, cy - 2, cx + 7, cy + 2, 0xFF000000);
-            g.fill(cx - 2, cy - 7, cx + 2, cy + 7, 0xFF000000);
+            int edge = selSupply ? 0xFFFFFF55 : 0xFF000000;
+            g.fill(cx - 7, cy - 2, cx + 7, cy + 2, edge);
+            g.fill(cx - 2, cy - 7, cx + 2, cy + 7, edge);
             g.fill(cx - 6, cy - 1, cx + 6, cy + 1, 0xFF3CE05A);
             g.fill(cx - 1, cy - 6, cx + 1, cy + 6, 0xFF3CE05A);
             g.drawCenteredString(font, Component.translatable("gui.trainrecruits.map.supply", s.size()).getString(),
@@ -674,7 +679,19 @@ public class TrainMapScreen extends Screen {
         if (bestCrew != null) {
             selCrew = bestCrew.id();
             selSquad = null;
+            selSupply = false;
             return;
+        }
+        // supply company (green plus)
+        for (SquadEntry s : ClientStations.getSupply()) {
+            double dx = toScreenX(s.x()) - mx;
+            double dy = toScreenY(s.z()) - my;
+            if (s.dim().equals(dim) && dx * dx + dy * dy <= 14.0D * 14.0D) {
+                selSupply = true;
+                selSquad = null;
+                selCrew = null;
+                return;
+            }
         }
         // then squads
         SquadEntry bestSquad = null;
@@ -694,6 +711,17 @@ public class TrainMapScreen extends Screen {
         if (bestSquad != null) {
             selSquad = bestSquad.id();
             selCrew = null;
+            selSupply = false;
+            return;
+        }
+        // ground with the supply company selected: it goes there
+        if (selSupply && !ClientStations.getSupply().isEmpty()) {
+            Minecraft mc = Minecraft.getInstance();
+            int y = mc.player != null ? Mth.floor(mc.player.getY()) : 64;
+            BlockPos target = new BlockPos(Mth.floor(toWorldX(mx)), y, Mth.floor(toWorldZ(my)));
+            lastTarget = target;
+            Net.CHANNEL.sendToServer(new Net.SupplyCommand(Net.SQUAD_MOVE, target));
+            refreshTimer = 5;
             return;
         }
         // ground with a crew selected: it shells that point

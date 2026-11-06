@@ -116,8 +116,8 @@ public class TrainConfig {
         b.push("darkness");
         DARKNESS = b.comment("Soldiers (Recruits) get lost in the dark: they flee to light, lose sight of targets, miss and hit at random.")
                 .define("enabled", true);
-        DARK_LEVEL = b.comment("Light level at or below which it is dark for a soldier (night in the open is 4, so only caves, unlit rooms and storms count).")
-                .defineInRange("darkLevel", 3, 0, 14);
+        DARK_LEVEL = b.comment("Light level at or below which it is dark for a soldier. Night in the open is 4, so unlit places at night count.")
+                .defineInRange("nightDarkLevel", 4, 0, 14);
         PITCH_LEVEL = b.comment("Light level at or below which it is pitch black (blind, many misses).")
                 .defineInRange("pitchLevel", 0, 0, 14);
         DARK_MARGIN = b.comment("In a fight soldiers may step this many blocks out of the light before they retreat.")

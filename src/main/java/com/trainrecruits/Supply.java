@@ -58,6 +58,53 @@ public final class Supply {
     private static final Map<UUID, List<BlockPos>> FIRES = new HashMap<>();
     private static boolean warned;
 
+    /** Standing order of a player's company: hold a point (default), march to a point, or follow the player. */
+    private static final class Order {
+        boolean follow;
+        Vec3 point;
+    }
+
+    private static final Map<UUID, Order> ORDER = new HashMap<>();
+    /** Villagers walking to a train seat: the goal must not drag them back to the anchor. */
+    static final Map<UUID, Long> BOARD = new HashMap<>();
+
+    /** Map command: Net.SQUAD_MOVE / SQUAD_HOLD / SQUAD_FOLLOW. */
+    static void command(ServerPlayer p, byte action, BlockPos pos) {
+        List<Villager> list = members(p);
+        if (list.isEmpty()) {
+            p.displayClientMessage(Component.translatable("msg.trainrecruits.squad_not_found"), true);
+            return;
+        }
+        Order o = ORDER.computeIfAbsent(p.getUUID(), k -> new Order());
+        switch (action) {
+            case Net.SQUAD_MOVE -> {
+                o.follow = false;
+                o.point = Vec3.atBottomCenterOf(pos);
+                p.displayClientMessage(Component.translatable("msg.trainrecruits.squad_move", pos.getX(), pos.getZ()), true);
+            }
+            case Net.SQUAD_HOLD -> {
+                o.follow = false;
+                o.point = centroid(list);
+                p.displayClientMessage(Component.translatable("msg.trainrecruits.squad_hold"), true);
+            }
+            default -> {
+                o.follow = true;
+                p.displayClientMessage(Component.translatable("msg.trainrecruits.squad_follow"), true);
+            }
+        }
+        Net.sendSquads(p);
+    }
+
+    private static Vec3 centroid(List<Villager> list) {
+        double x = 0, y = 0, z = 0;
+        for (Villager v : list) {
+            x += v.getX();
+            y += v.getY();
+            z += v.getZ();
+        }
+        return new Vec3(x / list.size(), y / list.size(), z / list.size());
+    }
+
     private Supply() {}
 
     static boolean isSupply(Entity e) {
@@ -126,6 +173,7 @@ public final class Supply {
     }
 
     static void release(Villager v) {
+        BOARD.remove(v.getUUID());
         CompoundTag d = v.getPersistentData();
         d.remove(TAG);
         d.remove(OWNER);
@@ -159,8 +207,18 @@ public final class Supply {
         if (!(p.level() instanceof ServerLevel level)) {
             return new ArrayList<>();
         }
-        return level.getEntitiesOfClass(Villager.class, p.getBoundingBox().inflate(96.0D, 64.0D, 96.0D),
-                v -> v.isAlive() && isSupply(v) && p.getUUID().equals(owner(v)));
+        java.util.function.Predicate<Villager> mine = v -> v.isAlive() && isSupply(v) && p.getUUID().equals(owner(v));
+        List<Villager> out = new ArrayList<>(level.getEntitiesOfClass(Villager.class, p.getBoundingBox().inflate(96.0D, 64.0D, 96.0D), mine));
+        Order o = ORDER.get(p.getUUID());
+        if (o != null && o.point != null && !o.follow) {
+            // a company holding a faraway point is still the player's company
+            for (Villager v : level.getEntitiesOfClass(Villager.class, new AABB(BlockPos.containing(o.point)).inflate(96.0D, 64.0D, 96.0D), mine)) {
+                if (!out.contains(v)) {
+                    out.add(v);
+                }
+            }
+        }
+        return out;
     }
 
     static int golemCap(int members) {
@@ -197,10 +255,16 @@ public final class Supply {
         }
         ServerLevel level = p.serverLevel();
         long now = level.getGameTime();
-        List<AbstractRecruitEntity> troops = level.getEntitiesOfClass(AbstractRecruitEntity.class, p.getBoundingBox().inflate(48.0D, 24.0D, 48.0D),
+        Order order = ORDER.computeIfAbsent(p.getUUID(), k -> new Order());
+        if (!order.follow && order.point == null) {
+            order.point = centroid(list);
+        }
+        Vec3 centre = order.follow || order.point == null ? p.position() : order.point;
+        List<AbstractRecruitEntity> troops = level.getEntitiesOfClass(AbstractRecruitEntity.class,
+                new AABB(BlockPos.containing(centre)).inflate(48.0D, 24.0D, 48.0D),
                 r -> r.isAlive() && p.getUUID().equals(r.getOwnerUUID()));
-        Vec3 anchor = p.position();
-        if (!troops.isEmpty()) {
+        Vec3 anchor = centre;
+        if (order.follow && !troops.isEmpty()) {
             double x = 0, y = 0, z = 0;
             for (AbstractRecruitEntity r : troops) {
                 x += r.getX();
@@ -232,7 +296,10 @@ public final class Supply {
             if (BUSY.getOrDefault(v.getUUID(), 0L) > now || NEXT_TORCH.getOrDefault(v.getUUID(), 0L) > now) {
                 continue;
             }
-            if (placeTorch(level, v)) {
+            if (v.isPassenger()) {
+                continue;
+            }
+            if (placeTorch(level, v) || lightChunk(level, v, anchor, now)) {
                 NEXT_TORCH.put(v.getUUID(), now + 80);
             }
         }
@@ -311,6 +378,92 @@ public final class Supply {
         return false;
     }
 
+    /** Standing in a dark chunk: the company lights it up (the nearest dark spot of the chunk gets a torch). */
+    private static boolean lightChunk(ServerLevel level, Villager v, Vec3 anchor, long now) {
+        if (v.position().distanceToSqr(anchor) > 14.0D * 14.0D) {
+            return false;
+        }
+        net.minecraft.world.level.ChunkPos cp = new net.minecraft.world.level.ChunkPos(BlockPos.containing(anchor));
+        BlockPos best = null;
+        double bd = Double.MAX_VALUE;
+        for (int x = cp.getMinBlockX(); x <= cp.getMaxBlockX(); x += 4) {
+            for (int z = cp.getMinBlockZ(); z <= cp.getMaxBlockZ(); z += 4) {
+                if (!level.hasChunkAt(new BlockPos(x, 0, z))) {
+                    continue;
+                }
+                BlockPos pos = level.getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos(x, 0, z));
+                if (Math.abs(pos.getY() - v.getY()) > 8 || !level.isEmptyBlock(pos)
+                        || !level.getBlockState(pos.below()).isFaceSturdy(level, pos.below(), Direction.UP)
+                        || level.getBrightness(LightLayer.BLOCK, pos) >= 7 || level.getMaxLocalRawBrightness(pos) > 9) {
+                    continue;
+                }
+                double d = pos.distSqr(v.blockPosition());
+                if (d < bd) {
+                    bd = d;
+                    best = pos;
+                }
+            }
+        }
+        if (best == null) {
+            return false;
+        }
+        if (bd > 2.5D * 2.5D) {
+            BUSY.put(v.getUUID(), now + 50);
+            v.getNavigation().moveTo(best.getX() + 0.5D, best.getY(), best.getZ() + 0.5D, 0.9D);
+            return false;
+        }
+        level.setBlock(best, Blocks.TORCH.defaultBlockState(), 3);
+        v.swing(InteractionHand.MAIN_HAND);
+        level.playSound(null, best, SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 0.8F, 1.0F);
+        return true;
+    }
+
+    // ------------------------------------------------------------------ trains
+
+    /** Boards the company on the free seats left after the recruits. @return {seated, pending} */
+    static int[] board(ServerLevel level, BlockPos center, UUID owner, List<TrainSeating.Slot> slots,
+                       Map<UUID, Long> orders, long now) {
+        int seated = 0;
+        int pending = 0;
+        double reach = TrainConfig.SEAT_REACH.get();
+        AABB box = new AABB(center).inflate(TrainConfig.SEARCH_RADIUS.get());
+        for (Villager v : level.getEntitiesOfClass(Villager.class, box,
+                e -> e.isAlive() && isSupply(e) && !e.isPassenger() && owner.equals(owner(e)))) {
+            if (slots.isEmpty()) {
+                break;
+            }
+            TrainSeating.Slot best = null;
+            double bd = Double.MAX_VALUE;
+            for (TrainSeating.Slot sl : slots) {
+                double d = v.position().distanceToSqr(sl.pos());
+                if (d < bd) {
+                    bd = d;
+                    best = sl;
+                }
+            }
+            slots.remove(best);
+            Long at = orders.get(v.getUUID());
+            boolean timedOut = at != null && now - at > TrainConfig.WALK_TIMEOUT_SECONDS.get() * 20L && Math.sqrt(bd) < 16.0D;
+            if (Math.sqrt(bd) <= reach || timedOut) {
+                best.train().addSittingPassenger(v, best.index());
+                if (v.getVehicle() == best.train()) {
+                    v.getNavigation().stop();
+                    orders.remove(v.getUUID());
+                    BOARD.remove(v.getUUID());
+                    seated++;
+                    continue;
+                }
+            }
+            pending++;
+            orders.putIfAbsent(v.getUUID(), now);
+            BOARD.put(v.getUUID(), now + 100L);
+            if (v.tickCount % 10 == 0 || v.getNavigation().isDone()) {
+                v.getNavigation().moveTo(best.pos().x, best.pos().y, best.pos().z, 0.9D);
+            }
+        }
+        return new int[]{seated, pending};
+    }
+
     private static BlockPos campfireSpot(ServerLevel level, BlockPos base) {
         for (int i = 0; i < 10; i++) {
             BlockPos pos = base.offset(level.random.nextInt(9) - 4, level.random.nextInt(3) - 1, level.random.nextInt(9) - 4);
@@ -378,8 +531,11 @@ public final class Supply {
         @Override
         public void tick() {
             ServerPlayer o = owner();
-            if (o == null) {
+            if (o == null || v.isPassenger()) {
                 return;
+            }
+            if (BOARD.getOrDefault(v.getUUID(), 0L) > v.level().getGameTime()) {
+                return; // walking to a train seat
             }
             v.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
             if (BUSY.getOrDefault(v.getUUID(), 0L) > v.level().getGameTime()) {

@@ -312,10 +312,11 @@ public final class Supply {
             if (BUSY.getOrDefault(v.getUUID(), 0L) > now || NEXT_TORCH.getOrDefault(v.getUUID(), 0L) > now) {
                 continue;
             }
-            if (v.isPassenger() || !arrived) {
-                continue; // torches are put up once the company stands at its point
+            if (v.isPassenger()) {
+                continue;
             }
-            if (placeTorch(level, v) || lightChunk(level, v, anchor, now)) {
+            // marching: torches along the way; standing at the point: the whole chunk gets lit
+            if (placeTorch(level, v) || (arrived && lightChunk(level, v, anchor, now))) {
                 NEXT_TORCH.put(v.getUUID(), now + 80);
             }
         }

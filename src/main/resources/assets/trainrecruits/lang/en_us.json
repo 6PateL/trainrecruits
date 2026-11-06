@@ -109,5 +109,16 @@
   "msg.trainrecruits.supply_build_on": "Order: the company builds golems.",
   "msg.trainrecruits.supply_build_off": "Order cancelled: golems are built only on a threat.",
   "msg.trainrecruits.dark_retreat": "%s cannot see in the dark and falls back to the light.",
-  "gui.trainrecruits.map.supply": "Supply company (%s)"
+  "gui.trainrecruits.map.supply": "Supply company (%s)",
+  "baton.mode.info": "6. Info (crimes, raids)",
+  "baton.info.title": "Baton info",
+  "baton.info.crimes": "Villages that remember your crimes:",
+  "baton.info.none": "none",
+  "baton.info.hostile": "%s (X %s, Z %s): hostile, forgets in %s",
+  "baton.info.warning": "%s (X %s, Z %s): warning, resets in %s",
+  "baton.info.raids": "Next raids:",
+  "baton.info.unscheduled": "not scheduled yet",
+  "baton.info.raid.barbarian_village": "Barbarians on villages: in %s",
+  "baton.info.raid.barbarian_hideout": "Barbarians from hideouts (nearest): in %s",
+  "baton.info.raid.infected": "Infected (virus): in %s"
 }

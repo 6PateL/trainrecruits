@@ -109,5 +109,16 @@
   "msg.trainrecruits.supply_build_on": "Наказ: рота будує големів.",
   "msg.trainrecruits.supply_build_off": "Наказ скасовано: големів будують лише при загрозі.",
   "msg.trainrecruits.dark_retreat": "%s не бачить у темряві й відходить до світла.",
-  "gui.trainrecruits.map.supply": "Рота забезпечення (%s)"
+  "gui.trainrecruits.map.supply": "Рота забезпечення (%s)",
+  "baton.mode.info": "6. Інформація (злочини, рейди)",
+  "baton.info.title": "Інформація жезла",
+  "baton.info.crimes": "Села, що пам'ятають твої злочини:",
+  "baton.info.none": "нічого",
+  "baton.info.hostile": "%s (X %s, Z %s): ворожі, забудуть через %s",
+  "baton.info.warning": "%s (X %s, Z %s): попередження, скинуться через %s",
+  "baton.info.raids": "Наступні рейди:",
+  "baton.info.unscheduled": "ще не заплановано",
+  "baton.info.raid.barbarian_village": "Варвари на села: через %s",
+  "baton.info.raid.barbarian_hideout": "Варвари зі схованок (найближчий): через %s",
+  "baton.info.raid.infected": "Заражені (вірус): через %s"
 }

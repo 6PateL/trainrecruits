@@ -32,6 +32,11 @@ public class BatonScreen extends Screen {
             }).bounds(x, y + i * 24, w, 20).build();
             this.addRenderableWidget(b);
         }
+        Button info = Button.builder(Component.translatable("baton.mode.info"), btn -> {
+            Net.CHANNEL.sendToServer(new Net.InfoRequest());
+            this.onClose();
+        }).bounds(x, y + BatonItem.MODES * 24, w, 20).build();
+        this.addRenderableWidget(info);
     }
 
     @Override

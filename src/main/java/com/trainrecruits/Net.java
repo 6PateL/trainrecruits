@@ -55,6 +55,8 @@ public final class Net {
         CHANNEL.registerMessage(id++, CrewList.class, CrewList::encode, CrewList::decode, CrewList::handle);
         CHANNEL.registerMessage(id++, SupplyList.class, SupplyList::encode, SupplyList::decode, SupplyList::handle);
         CHANNEL.registerMessage(id++, CrewCommand.class, CrewCommand::encode, CrewCommand::decode, CrewCommand::handle);
+        CHANNEL.registerMessage(id++, InfoRequest.class, InfoRequest::encode, InfoRequest::decode, InfoRequest::handle);
+        CHANNEL.registerMessage(id++, InfoData.class, InfoData::encode, InfoData::decode, InfoData::handle);
         CHANNEL.registerMessage(id++, BatonMode.class, BatonMode::encode, BatonMode::decode, BatonMode::handle);
     }
 
@@ -476,13 +478,75 @@ public final class Net {
                 if (player == null || !(player.getMainHandItem().getItem() instanceof BatonItem)) {
                     return;
                 }
-                if (m.mode < 0 || m.mode >= BatonItem.MODES || m.mode == BatonItem.MODE_SUPPLY) {
+                if (m.mode < 0 || m.mode >= BatonItem.MODES) {
                     player.displayClientMessage(Component.translatable("msg.trainrecruits.baton_reserved"), true);
                     return;
                 }
                 BatonItem.setMode(player.getMainHandItem(), m.mode);
                 player.displayClientMessage(Component.translatable("msg.trainrecruits.baton_mode_set", BatonItem.modeName(m.mode)), true);
             });
+            c.setPacketHandled(true);
+        }
+    }
+
+    /** Client -> server: "show me the baton info". */
+    public record InfoRequest() {
+        static void encode(InfoRequest m, FriendlyByteBuf buf) {}
+
+        static InfoRequest decode(FriendlyByteBuf buf) {
+            return new InfoRequest();
+        }
+
+        static void handle(InfoRequest m, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> {
+                ServerPlayer player = c.getSender();
+                if (player != null) {
+                    CHANNEL.send(PacketDistributor.PLAYER.with(() -> player),
+                            new InfoData(Info.grudges(player), Info.raids(player)));
+                }
+            });
+            c.setPacketHandled(true);
+        }
+    }
+
+    /** Server -> client: crimes remembered by villages and the raid schedule. */
+    public record InfoData(List<String[]> grudges, List<String[]> raids) {
+        static void encode(InfoData m, FriendlyByteBuf buf) {
+            buf.writeVarInt(m.grudges.size());
+            for (String[] e : m.grudges) {
+                for (int i = 0; i < 6; i++) {
+                    buf.writeUtf(i < e.length ? e[i] : "");
+                }
+            }
+            buf.writeVarInt(m.raids.size());
+            for (String[] e : m.raids) {
+                buf.writeUtf(e[0]);
+                buf.writeUtf(e[1]);
+            }
+        }
+
+        static InfoData decode(FriendlyByteBuf buf) {
+            int n = buf.readVarInt();
+            List<String[]> g = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) {
+                String[] e = new String[6];
+                for (int k = 0; k < 6; k++) {
+                    e[k] = buf.readUtf();
+                }
+                g.add(e);
+            }
+            int r = buf.readVarInt();
+            List<String[]> raids = new ArrayList<>(r);
+            for (int i = 0; i < r; i++) {
+                raids.add(new String[]{buf.readUtf(), buf.readUtf()});
+            }
+            return new InfoData(g, raids);
+        }
+
+        static void handle(InfoData m, Supplier<NetworkEvent.Context> ctx) {
+            NetworkEvent.Context c = ctx.get();
+            c.enqueueWork(() -> DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> InfoScreen.show(m.grudges, m.raids)));
             c.setPacketHandled(true);
         }
     }

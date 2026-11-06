@@ -356,10 +356,10 @@ public final class Supply {
                 mine++;
             }
         }
-        boolean order = list.get(0).getPersistentData().getBoolean(BUILD);
+        boolean buildOrder = list.get(0).getPersistentData().getBoolean(BUILD);
         // the company sees every threat, dark or not
         boolean threat = !level.getEntitiesOfClass(Monster.class, new AABB(ap).inflate(32.0D, 14.0D, 32.0D), Monster::isAlive).isEmpty();
-        if (arrived && (order || threat) && mine < golemCap(n) && NEXT_GOLEM.getOrDefault(p.getUUID(), 0L) <= now) {
+        if (arrived && (buildOrder || threat) && mine < golemCap(n) && NEXT_GOLEM.getOrDefault(p.getUUID(), 0L) <= now) {
             if (buildGolem(level, p, list.get(level.random.nextInt(list.size())))) {
                 NEXT_GOLEM.put(p.getUUID(), now + TrainConfig.SUPPLY_GOLEM_COOLDOWN.get() * 20L);
             }

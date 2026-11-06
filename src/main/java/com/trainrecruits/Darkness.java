@@ -295,8 +295,8 @@ public final class Darkness {
             if (pr.isRemoved() || speed < 0.05D) {
                 continue;
             }
-            double yaw = (pr.getRandom().nextDouble() - 0.5D) * 2.0D * 0.5D;
-            double pitch = (pr.getRandom().nextDouble() - 0.5D) * 2.0D * 0.25D;
+            double yaw = (pr.level().getRandom().nextDouble() - 0.5D) * 2.0D * 0.5D;
+            double pitch = (pr.level().getRandom().nextDouble() - 0.5D) * 2.0D * 0.25D;
             double cos = Math.cos(yaw);
             double sin = Math.sin(yaw);
             double nx = v.x * cos - v.z * sin;

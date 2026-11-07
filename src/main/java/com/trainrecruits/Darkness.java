@@ -63,7 +63,8 @@ public final class Darkness {
 
     /** A target standing in the dark (and not right next to the soldier) cannot be seen, whatever the soldier's own light is. */
     private static boolean unseen(AbstractRecruitEntity r, LivingEntity t) {
-        if (blind(r) || r.distanceTo(t) <= 4.0D) {
+        // a player is made out from afar (the villages remember him); anything else only up close
+        if (blind(r) || r.distanceTo(t) <= (t instanceof Player ? 24.0D : 4.0D)) {
             return false;
         }
         return light(r.level(), t.blockPosition()) <= TrainConfig.DARK_LEVEL.get();

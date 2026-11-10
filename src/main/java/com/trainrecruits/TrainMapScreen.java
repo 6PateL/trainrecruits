@@ -67,6 +67,7 @@ public class TrainMapScreen extends Screen {
 
     private Button holdBtn;
     private Button followBtn;
+    private Button callGolemBtn;
     private Button stationBtn;
     private Button autoBtn;
     private Button crewAutoBtn;
@@ -105,6 +106,9 @@ public class TrainMapScreen extends Screen {
                 b -> squadOrder(Net.SQUAD_HOLD)).bounds(x0 + (bw + gap), y, bw, 20).build());
         followBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.follow"),
                 b -> squadOrder(Net.SQUAD_FOLLOW)).bounds(x0 + 2 * (bw + gap), y, bw, 20).build());
+        callGolemBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.call_golem"),
+                b -> squadOrder(Net.SQUAD_CALL_GOLEM)).bounds(x0 + 3 * (bw + gap), y - 22, Math.max(bw, 80), 20).build());
+        callGolemBtn.visible = false;
         stationBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.station"),
                 b -> stationOrder(Net.ACTION_TRIGGER)).bounds(x0 + 3 * (bw + gap), y, bw, 20).build());
         autoBtn = addRenderableWidget(Button.builder(Component.translatable("gui.trainrecruits.map.auto"),
@@ -304,6 +308,7 @@ public class TrainMapScreen extends Screen {
         clearBtn.active = squad != null;
         holdBtn.active = squad != null || selSupply;
         followBtn.active = squad != null || selSupply;
+        callGolemBtn.visible = selSupply;
         stationBtn.active = station != null;
         autoBtn.active = station != null;
         CrewEntry crew = selectedCrew();

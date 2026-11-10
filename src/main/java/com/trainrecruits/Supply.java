@@ -63,6 +63,7 @@ public final class Supply {
     private static final class Order {
         boolean follow;
         Vec3 point;
+        boolean callGolem;
     }
 
     private static final Map<UUID, Order> ORDER = new HashMap<>();
@@ -87,6 +88,10 @@ public final class Supply {
                 o.follow = false;
                 o.point = centroid(list);
                 p.displayClientMessage(Component.translatable("msg.trainrecruits.squad_hold"), true);
+            }
+            case Net.SQUAD_CALL_GOLEM -> {
+                o.callGolem = true;
+                p.displayClientMessage(Component.translatable("msg.trainrecruits.supply_call_golem"), true);
             }
             default -> {
                 o.follow = true;
@@ -324,6 +329,26 @@ public final class Supply {
         // 3. golems: repair, build on threat or on order
         AABB zone = new AABB(ap).inflate(40.0D, 20.0D, 40.0D);
         List<IronGolem> golems = level.getEntitiesOfClass(IronGolem.class, zone, g -> g.isAlive() && !g.isAngryAt(p));
+        // the company's own golems follow it wherever it goes: look for them far beyond the zone too
+        List<IronGolem> own = level.getEntitiesOfClass(IronGolem.class, new AABB(ap).inflate(96.0D, 48.0D, 96.0D),
+                g -> g.isAlive() && isOwn(g, p));
+        for (IronGolem g : own) {
+            if (!golems.contains(g)) {
+                golems.add(g);
+            }
+        }
+        // repair priority: own golems first
+        golems.sort((a, b) -> Boolean.compare(isOwn(b, p), isOwn(a, p)));
+        for (IronGolem g : own) {
+            g.restrictTo(ap, 10);
+            if (g.getTarget() == null && g.distanceToSqr(Vec3.atCenterOf(ap)) > 14.0D * 14.0D) {
+                if (g.distanceToSqr(Vec3.atCenterOf(ap)) > 80.0D * 80.0D) {
+                    g.teleportTo(ap.getX() + 0.5D, ap.getY(), ap.getZ() + 0.5D);
+                } else {
+                    g.getNavigation().moveTo(ap.getX() + 0.5D, ap.getY(), ap.getZ() + 0.5D, 1.15D);
+                }
+            }
+        }
         List<Villager> free = new ArrayList<>(list);
         for (IronGolem g : golems) {
             if (g.getHealth() >= g.getMaxHealth() - 1.0F || free.isEmpty()) {
@@ -349,10 +374,17 @@ public final class Supply {
                 best.getNavigation().moveTo(g, 0.9D);
             }
         }
-        int mine = 0;
-        for (IronGolem g : golems) {
-            CompoundTag gd = g.getPersistentData();
-            if (gd.hasUUID(GOLEM_OWNER) && gd.getUUID(GOLEM_OWNER).equals(p.getUUID())) {
+        int mine = own.size();
+        Order callOrder = ORDER.get(p.getUUID());
+        if (callOrder != null && callOrder.callGolem) {
+            callOrder.callGolem = false;
+            long wait = NEXT_GOLEM.getOrDefault(p.getUUID(), 0L) - now;
+            if (mine >= golemCap(n)) {
+                p.displayClientMessage(Component.translatable("msg.trainrecruits.supply_call_cap", mine, golemCap(n)), true);
+            } else if (wait > 0) {
+                p.displayClientMessage(Component.translatable("msg.trainrecruits.supply_call_wait", (wait + 19) / 20), true);
+            } else if (buildGolem(level, p, list.get(level.random.nextInt(list.size())))) {
+                NEXT_GOLEM.put(p.getUUID(), now + TrainConfig.SUPPLY_GOLEM_COOLDOWN.get() * 20L);
                 mine++;
             }
         }
@@ -491,6 +523,11 @@ public final class Supply {
             }
         }
         return null;
+    }
+
+    private static boolean isOwn(IronGolem g, ServerPlayer p) {
+        CompoundTag gd = g.getPersistentData();
+        return gd.hasUUID(GOLEM_OWNER) && gd.getUUID(GOLEM_OWNER).equals(p.getUUID());
     }
 
     private static boolean buildGolem(ServerLevel level, ServerPlayer p, Villager builder) {

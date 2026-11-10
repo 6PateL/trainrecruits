@@ -120,5 +120,9 @@
   "baton.info.unscheduled": "ще не заплановано",
   "baton.info.raid.barbarian_village": "Варвари на села: через %s",
   "baton.info.raid.barbarian_hideout": "Варвари зі схованок (найближчий): через %s",
-  "baton.info.raid.infected": "Заражені (вірус): через %s"
+  "baton.info.raid.infected": "Заражені (вірус): через %s",
+  "gui.trainrecruits.map.call_golem": "Визвати голема",
+  "msg.trainrecruits.supply_call_golem": "Рота будує голема.",
+  "msg.trainrecruits.supply_call_cap": "Ліміт големів досягнуто: %s/%s.",
+  "msg.trainrecruits.supply_call_wait": "Голем на перезарядці: %s с."
 }

@@ -120,5 +120,9 @@
   "baton.info.unscheduled": "not scheduled yet",
   "baton.info.raid.barbarian_village": "Barbarians on villages: in %s",
   "baton.info.raid.barbarian_hideout": "Barbarians from hideouts (nearest): in %s",
-  "baton.info.raid.infected": "Infected (virus): in %s"
+  "baton.info.raid.infected": "Infected (virus): in %s",
+  "gui.trainrecruits.map.call_golem": "Call golem",
+  "msg.trainrecruits.supply_call_golem": "Company is building a golem.",
+  "msg.trainrecruits.supply_call_cap": "Golem limit reached: %s/%s.",
+  "msg.trainrecruits.supply_call_wait": "Golem on cooldown: %s s."
 }

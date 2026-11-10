@@ -35,6 +35,7 @@ public final class Net {
     public static final byte SQUAD_MOVE = 0;
     public static final byte SQUAD_HOLD = 1;
     public static final byte SQUAD_FOLLOW = 2;
+    public static final byte SQUAD_CALL_GOLEM = 3;
 
     public static final byte ASSIGN_TOGGLE = 0;
     public static final byte ASSIGN_ALL_FREE = 1;

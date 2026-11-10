@@ -43,6 +43,7 @@ public final class Darkness {
         long nextSearch;
         BlockPos spot;
         long nextWarn;
+        LivingEntity bogus; // random target picked while confused in the dark
     }
 
     private static final Map<AbstractRecruitEntity, State> STATES = new WeakHashMap<>();
@@ -96,6 +97,14 @@ public final class Darkness {
         int here = light(level, r.blockPosition());
         if (here > dark || blind(r) || r.getVehicle() != null) {
             s.confused = false;
+            if (s.bogus != null) {
+                // back in the light: forget the phantom target picked in the dark
+                if (r.getTarget() == s.bogus && r.getLastHurtByMob() != s.bogus) {
+                    r.setTarget(null);
+                    r.getNavigation().stop();
+                }
+                s.bogus = null;
+            }
             return;
         }
         // lose sight of far targets
@@ -170,7 +179,12 @@ public final class Darkness {
         List<LivingEntity> near = r.level().getEntitiesOfClass(LivingEntity.class, new AABB(r.blockPosition()).inflate(5.0D),
                 e -> e != r && e.isAlive() && !(e instanceof Player) && !r.isAlliedTo(e));
         if (!near.isEmpty()) {
-            r.setTarget(near.get(r.getRandom().nextInt(near.size())));
+            LivingEntity pick = near.get(r.getRandom().nextInt(near.size()));
+            r.setTarget(pick);
+            State st = STATES.get(r);
+            if (st != null) {
+                st.bogus = pick;
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
@@ -231,7 +232,7 @@ public final class Supply {
         if (members < TrainConfig.SUPPLY_MIN.get()) {
             return 0;
         }
-        return 1 + members / 5 * TrainConfig.SUPPLY_GOLEMS_PER_FIVE.get();
+        return 1 + (members - TrainConfig.SUPPLY_MIN.get()) / 5 * TrainConfig.SUPPLY_GOLEMS_PER_FIVE.get();
     }
 
     // ------------------------------------------------------------------ company work (once a second)
@@ -301,12 +302,13 @@ public final class Supply {
         }
         BlockPos ap = BlockPos.containing(anchor);
 
-        // 1. food and regeneration for the infantry near any member
+        // 1. food and regeneration for the infantry near any member (10+ villagers: Regeneration II)
+        int regenLevel = n >= 10 ? 1 : 0;
         for (AbstractRecruitEntity r : troops) {
             for (Villager v : list) {
                 if (v.distanceToSqr(r) <= 14.0D * 14.0D) {
                     r.setHunger(Math.min(100.0F, r.getHunger() + 8.0F));
-                    r.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 80, 0, true, false));
+                    r.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 80, regenLevel, true, false));
                     break;
                 }
             }
@@ -328,7 +330,9 @@ public final class Supply {
 
         // 3. golems: repair, build on threat or on order
         AABB zone = new AABB(ap).inflate(40.0D, 20.0D, 40.0D);
-        List<IronGolem> golems = level.getEntitiesOfClass(IronGolem.class, zone, g -> g.isAlive() && !g.isAngryAt(p));
+        UUID ourFaction = Rv.villagerFaction(list.get(0));
+        // never repair golems hostile to the player or to the company's faction (other villages' golems included)
+        List<IronGolem> golems = level.getEntitiesOfClass(IronGolem.class, zone, g -> g.isAlive() && friendlyGolem(g, p, ourFaction));
         // the company's own golems follow it wherever it goes: look for them far beyond the zone too
         List<IronGolem> own = level.getEntitiesOfClass(IronGolem.class, new AABB(ap).inflate(96.0D, 48.0D, 96.0D),
                 g -> g.isAlive() && isOwn(g, p));
@@ -523,6 +527,18 @@ public final class Supply {
             }
         }
         return null;
+    }
+
+    private static boolean friendlyGolem(IronGolem g, ServerPlayer p, UUID ourFaction) {
+        if (isOwn(g, p)) {
+            return true;
+        }
+        if (g.isAngryAt(p) || g.getTarget() instanceof Player || g.getPersistentData().hasUUID(GOLEM_OWNER)) {
+            return false; // hostile, or another company's golem
+        }
+        String tag = g.getPersistentData().getString("vf_golem");
+        // a village golem is ours only if its village is the company's faction (joined or founded by the player)
+        return tag.isEmpty() || (ourFaction != null && tag.equals(ourFaction.toString()));
     }
 
     private static boolean isOwn(IronGolem g, ServerPlayer p) {

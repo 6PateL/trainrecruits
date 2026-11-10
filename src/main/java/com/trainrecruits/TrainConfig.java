@@ -133,7 +133,7 @@ public class TrainConfig {
                 .defineInRange("minMembers", 3, 1, 50);
         SUPPLY_GOLEM_COOLDOWN = b.comment("Seconds between two golems built by the same company.")
                 .defineInRange("golemCooldownSeconds", 180, 10, 3600);
-        SUPPLY_GOLEMS_PER_FIVE = b.comment("Golems a company may keep: 1 from the minimum size, plus this many for every full 5 members.")
+        SUPPLY_GOLEMS_PER_FIVE = b.comment("Golems a company may keep: 1 from the minimum size, plus this many for every full 5 members above the minimum (3 -> 1, 8 -> 2, 13 -> 3).")
                 .defineInRange("golemsPerFive", 1, 0, 10);
         b.pop();
         SPEC = b.build();

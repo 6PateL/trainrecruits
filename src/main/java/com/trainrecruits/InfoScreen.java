@@ -9,13 +9,32 @@ import java.util.List;
 
 /** Baton info: villages that remember your crimes (with coordinates and time until they forget) and the next raids. */
 public class InfoScreen extends Screen {
-    private final List<String[]> grudges;
-    private final List<String[]> raids;
+    private List<String[]> grudges;
+    private List<String[]> raids;
+    /** When the data arrived: the timers count down locally from there (live), and are re-synced every few seconds. */
+    private long received = System.currentTimeMillis();
+    private int sinceRefresh;
+    private static boolean refreshPending;
 
     public InfoScreen(List<String[]> grudges, List<String[]> raids) {
         super(Component.translatable("baton.info.title"));
         this.grudges = grudges;
         this.raids = raids;
+    }
+
+    private long live(String seconds) {
+        long s = Long.parseLong(seconds);
+        return s < 0 ? s : Math.max(0L, s - (System.currentTimeMillis() - received) / 1000L);
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (++sinceRefresh >= 100) { // every 5 s: fresh numbers from the server (raids moved, grudges forgotten)
+            sinceRefresh = 0;
+            refreshPending = true;
+            Net.CHANNEL.sendToServer(new Net.InfoRequest());
+        }
     }
 
     static String time(long s) {
@@ -44,7 +63,7 @@ public class InfoScreen extends Screen {
         for (String[] e : grudges) {
             boolean warn = e.length > 4 && "1".equals(e[4]);
             String key = warn ? "baton.info.warning" : "baton.info.hostile";
-            long left = Long.parseLong(e[3]);
+            long left = live(e[3]);
             g.drawString(this.font, Component.translatable(key, e[0], e[1], e[2], time(left)), x + 6, y,
                     warn ? 0xFFFFE070 : 0xFFFF6060);
             y += 12;
@@ -56,9 +75,18 @@ public class InfoScreen extends Screen {
             g.drawString(this.font, Component.translatable("baton.info.none"), x + 6, y, 0xFFAAAAAA);
         }
         for (String[] r : raids) {
-            g.drawString(this.font, Component.translatable("baton.info.raid." + r[0], time(Long.parseLong(r[1]))),
+            String[] parts = r[1].split(";");
+            g.drawString(this.font, Component.translatable("baton.info.raid." + r[0], time(live(parts[0]))),
                     x + 6, y, 0xFFE0E0E0);
             y += 12;
+            if (parts.length > 1 && !parts[1].isEmpty()) {
+                int until = Integer.parseInt(parts[1]);
+                if (until >= 0) {
+                    g.drawString(this.font, until == 0 ? Component.translatable("baton.info.raid.strong_next")
+                            : Component.translatable("baton.info.raid.strong_in", until), x + 16, y, until == 0 ? 0xFFFF6060 : 0xFFAAAAAA);
+                    y += 12;
+                }
+            }
         }
         super.render(g, mx, my, pt);
     }
@@ -69,6 +97,18 @@ public class InfoScreen extends Screen {
     }
 
     static void show(List<String[]> grudges, List<String[]> raids) {
-        Minecraft.getInstance().setScreen(new InfoScreen(grudges, raids));
+        Minecraft mc = Minecraft.getInstance();
+        boolean refresh = refreshPending;
+        refreshPending = false;
+        if (mc.screen instanceof InfoScreen cur) {
+            cur.grudges = grudges;
+            cur.raids = raids;
+            cur.received = System.currentTimeMillis();
+            return;
+        }
+        if (refresh) {
+            return; // the screen was closed while a refresh was on its way: do not reopen it
+        }
+        mc.setScreen(new InfoScreen(grudges, raids));
     }
 }

@@ -124,5 +124,7 @@
   "gui.trainrecruits.map.call_golem": "Call golem",
   "msg.trainrecruits.supply_call_golem": "Company is building a golem.",
   "msg.trainrecruits.supply_call_cap": "Golem limit reached: %s/%s.",
-  "msg.trainrecruits.supply_call_wait": "Golem on cooldown: %s s."
+  "msg.trainrecruits.supply_call_wait": "Golem on cooldown: %s s.",
+  "baton.info.raid.strong_next": "the next raid is REINFORCED",
+  "baton.info.raid.strong_in": "reinforced raid after %s ordinary ones"
 }

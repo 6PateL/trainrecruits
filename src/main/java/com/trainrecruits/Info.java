@@ -30,7 +30,7 @@ final class Info {
             Class<?> c = Class.forName("com.barbarianraids.BarbarianData");
             Object d = c.getMethod("get", net.minecraft.server.MinecraftServer.class).invoke(null, p.server);
             long next = c.getField("nextVillageRaid").getLong(d);
-            out.add(new String[]{"barbarian_village", String.valueOf(left(next, now))});
+            out.add(new String[]{"barbarian_village", left(next, now) + ";" + untilStrong(c, d)});
             long best = Long.MAX_VALUE;
             for (Object b : ((Map<String, Object>) c.getField("bosses").get(d)).values()) {
                 if (!b.getClass().getField("dead").getBoolean(b)) {
@@ -46,11 +46,20 @@ final class Info {
         try {
             Class<?> c = Class.forName("com.example.fleshspread.RaidData");
             Object d = c.getMethod("get", ServerLevel.class).invoke(null, ow);
-            out.add(new String[]{"infected", String.valueOf(left(c.getField("next").getLong(d), now))});
+            out.add(new String[]{"infected", left(c.getField("next").getLong(d), now) + ";" + untilStrong(c, d)});
         } catch (Throwable ignored) {
             // infected raids not installed
         }
         return out;
+    }
+
+    /** Ordinary raids left before a reinforced one ("" when the mod version has no such thing). */
+    private static String untilStrong(Class<?> c, Object data) {
+        try {
+            return String.valueOf(c.getField("untilStrong").getInt(data));
+        } catch (Throwable t) {
+            return "";
+        }
     }
 
     private static long left(long next, long now) {

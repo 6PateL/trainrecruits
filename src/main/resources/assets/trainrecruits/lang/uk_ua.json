@@ -124,5 +124,7 @@
   "gui.trainrecruits.map.call_golem": "Визвати голема",
   "msg.trainrecruits.supply_call_golem": "Рота будує голема.",
   "msg.trainrecruits.supply_call_cap": "Ліміт големів досягнуто: %s/%s.",
-  "msg.trainrecruits.supply_call_wait": "Голем на перезарядці: %s с."
+  "msg.trainrecruits.supply_call_wait": "Голем на перезарядці: %s с.",
+  "baton.info.raid.strong_next": "наступний рейд — ПОСИЛЕНИЙ",
+  "baton.info.raid.strong_in": "посилений рейд через %s звичайних"
 }

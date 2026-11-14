@@ -268,7 +268,7 @@ final class Battery {
         d.putLong(Gunners.MOUNT, mount.asLong());
         d.putBoolean(Gunners.AUTO, true);
         Rv.detach(v);
-        if (v.position().distanceToSqr(mount.getX() + 0.5D, mount.getY(), mount.getZ() + 0.5D) > 1600.0D) {
+        if (v.position().distanceToSqr(mount.getX() + 0.5D, mount.getY(), mount.getZ() + 0.5D) > 16.0D) { // always stand at the gun, wherever he was
             v.teleportTo(mount.getX() + 0.5D, mount.getY() + 1.0D, mount.getZ() + 0.5D);
         }
         if (v.getCustomName() == null) {

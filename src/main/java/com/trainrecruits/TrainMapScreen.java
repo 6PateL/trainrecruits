@@ -336,10 +336,45 @@ public class TrainMapScreen extends Screen {
             winCz = camCz;
             builtVersion = -1;
         }
-        if (builtVersion == -1 || (builtVersion != TerrainCache.version && rebuildCooldown <= 0)) {
+        if (builtVersion == -1) {
+            TerrainCache.DIRTY.clear();
             rebuild();
             builtVersion = TerrainCache.version;
-            rebuildCooldown = 10;
+        } else if (!TerrainCache.DIRTY.isEmpty() && rebuildCooldown <= 0) {
+            // домальовуємо лише змінені чанки, а не всі 48x48 щоразу
+            patchDirty();
+            builtVersion = TerrainCache.version;
+            rebuildCooldown = 2;
+        }
+    }
+
+    private void patchDirty() {
+        Minecraft mc = Minecraft.getInstance();
+        if (texture == null || mc.level == null || texture.getPixels() == null) {
+            TerrainCache.DIRTY.clear();
+            return;
+        }
+        NativeImage img = texture.getPixels();
+        Map<Long, int[]> cache = TerrainCache.forLevel(mc.level);
+        int n = TerrainCache.WINDOW_CHUNKS;
+        int half = n / 2;
+        boolean any = false;
+        while (!TerrainCache.DIRTY.isEmpty()) {
+            long key = TerrainCache.DIRTY.poll();
+            int cx = ChunkPos.getX(key) - (winCx - half), cz = ChunkPos.getZ(key) - (winCz - half);
+            if (cx < 0 || cz < 0 || cx >= n || cz >= n) {
+                continue;
+            }
+            int[] arr = cache.get(key);
+            for (int lz = 0; lz < 16; lz++) {
+                for (int lx = 0; lx < 16; lx++) {
+                    img.setPixelRGBA(cx * 16 + lx, cz * 16 + lz, arr == null ? 0 : arr[lz * 16 + lx]);
+                }
+            }
+            any = true;
+        }
+        if (any) {
+            texture.upload();
         }
     }
 

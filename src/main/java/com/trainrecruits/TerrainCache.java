@@ -29,6 +29,8 @@ public final class TerrainCache {
     private static int refillCooldown;
     /** Bumped whenever any cached chunk changes. */
     public static volatile int version;
+    /** Chunks changed since the map last drew them (the map redraws only these, not the whole picture). */
+    public static final ArrayDeque<Long> DIRTY = new ArrayDeque<>();
 
     private TerrainCache() {}
 
@@ -47,19 +49,31 @@ public final class TerrainCache {
             refillCooldown = 100;
             int r = Math.min(mc.options.getEffectiveRenderDistance(), 16);
             ChunkPos c = mc.player.chunkPosition();
-            List<ChunkPos> list = new ArrayList<>();
+            Map<Long, int[]> known = forLevel(level);
+            List<ChunkPos> fresh = new ArrayList<>();
+            List<ChunkPos> seen = new ArrayList<>();
             for (int dx = -r; dx <= r; dx++) {
                 for (int dz = -r; dz <= r; dz++) {
-                    list.add(new ChunkPos(c.x + dx, c.z + dz));
+                    ChunkPos p = new ChunkPos(c.x + dx, c.z + dz);
+                    (known.containsKey(p.toLong()) ? seen : fresh).add(p);
                 }
             }
-            list.sort((a, b) -> Integer.compare(
+            java.util.Comparator<ChunkPos> near = (a, b) -> Integer.compare(
                     (a.x - c.x) * (a.x - c.x) + (a.z - c.z) * (a.z - c.z),
-                    (b.x - c.x) * (b.x - c.x) + (b.z - c.z) * (b.z - c.z)));
-            QUEUE.addAll(list);
+                    (b.x - c.x) * (b.x - c.x) + (b.z - c.z) * (b.z - c.z));
+            fresh.sort(near);
+            seen.sort(near);
+            QUEUE.addAll(fresh); // спершу ще не бачені чанки, потім оновлення відомих
+            QUEUE.addAll(seen);
+            refillCooldown = fresh.isEmpty() ? 100 : 5;
         }
-        for (int i = 0; i < 2 && !QUEUE.isEmpty(); i++) {
+        // з відкритою картою скануємо швидше (до ~4 мс на тік), у грі — по 2 чанки, щоб не гальмувати
+        boolean open = mc.screen instanceof TrainMapScreen;
+        long until = System.nanoTime() + 4_000_000L;
+        int done = 0;
+        while (!QUEUE.isEmpty() && (open ? System.nanoTime() < until : done < 2)) {
             scan(level, QUEUE.poll());
+            done++;
         }
     }
 
@@ -176,6 +190,9 @@ public final class TerrainCache {
         if (old == null || !Arrays.equals(old, out)) {
             map.put(key, out);
             version++;
+            if (DIRTY.size() < 8192) {
+                DIRTY.add(key);
+            }
         }
     }
 }

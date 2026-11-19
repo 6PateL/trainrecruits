@@ -135,6 +135,20 @@ public final class TerrainCache {
                 int h = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, lx, lz);
                 int y = Math.max(h - 1, minY);
                 BlockState state = chunk.getBlockState(mp.set(wx, y, wz));
+                if (state.isAir()) {
+                    // висота стовпця може бути хибною (напр. плоский світ із повітрям унизу, як кишеньковий острів):
+                    // тоді шукаємо верхній блок самі, згори вниз
+                    int top = chunk.getHighestSectionPosition() + 15;
+                    for (int yy = top; yy > minY; yy--) {
+                        BlockState st = chunk.getBlockState(mp.set(wx, yy, wz));
+                        if (!st.isAir()) {
+                            y = yy;
+                            h = yy + 1;
+                            state = st;
+                            break;
+                        }
+                    }
+                }
                 int color;
                 if (!state.getFluidState().isEmpty()) {
                     int depth = 0;

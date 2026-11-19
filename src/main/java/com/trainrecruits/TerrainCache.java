@@ -63,6 +63,63 @@ public final class TerrainCache {
         }
     }
 
+    private static final Map<BlockState, Integer> TEXTURE_COLOR = new HashMap<>();
+
+    /**
+     * Блоки без кольору мапи (багато модових, напр. уся плоть Flesh That Hates) малювались чорними. Беремо середній
+     * колір їхньої текстури (у тому ж форматі ABGR, що й MapColor), з тією ж тінню за висотою.
+     */
+    private static int fallback(BlockState state, MapColor.Brightness b) {
+        if (state.isAir()) {
+            return 0;
+        }
+        Integer base = TEXTURE_COLOR.computeIfAbsent(state, TerrainCache::textureColor);
+        int mod = b == MapColor.Brightness.HIGH ? 255 : b == MapColor.Brightness.LOW ? 180 : b == MapColor.Brightness.LOWEST ? 135 : 220;
+        int r = (base & 0xFF) * mod / 255, g = (base >> 8 & 0xFF) * mod / 255, bl = (base >> 16 & 0xFF) * mod / 255;
+        return 0xFF000000 | bl << 16 | g << 8 | r;
+    }
+
+    private static int textureColor(BlockState state) {
+        try {
+            net.minecraft.client.renderer.texture.TextureAtlasSprite sprite = net.minecraft.client.Minecraft.getInstance()
+                    .getBlockRenderer().getBlockModelShaper().getParticleIcon(state);
+            Object contents = sprite.contents();
+            net.minecraft.client.renderer.texture.SpriteContents sc = (net.minecraft.client.renderer.texture.SpriteContents) contents;
+            com.mojang.blaze3d.platform.NativeImage img = null;
+            for (java.lang.reflect.Field f : sc.getClass().getDeclaredFields()) {
+                if (f.getType() == com.mojang.blaze3d.platform.NativeImage.class) {
+                    f.setAccessible(true);
+                    img = (com.mojang.blaze3d.platform.NativeImage) f.get(sc);
+                    break;
+                }
+            }
+            if (img != null) {
+                long r = 0, g = 0, bl = 0, n = 0;
+                int w = Math.min(img.getWidth(), 16), h = Math.min(img.getHeight(), 16);
+                for (int y = 0; y < h; y++) {
+                    for (int x = 0; x < w; x++) {
+                        int abgr = img.getPixelRGBA(x, y);
+                        if ((abgr >>> 24) < 128) {
+                            continue;
+                        }
+                        r += abgr & 0xFF;
+                        g += abgr >> 8 & 0xFF;
+                        bl += abgr >> 16 & 0xFF;
+                        n++;
+                    }
+                }
+                if (n > 0) {
+                    return (int) (bl / n) << 16 | (int) (g / n) << 8 | (int) (r / n);
+                }
+            }
+        } catch (Throwable ignored) {
+            // нижче — запасний колір
+        }
+        String id = String.valueOf(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()));
+        boolean flesh = id.contains("flesh") || id.contains("rott");
+        return flesh ? (0x22 << 16 | 0x1C << 8 | 0x8C) : (0x70 << 16 | 0x70 << 8 | 0x70); // ABGR: плоть темно-червона, решта сіра
+    }
+
     private static void scan(ClientLevel level, ChunkPos cp) {
         ChunkAccess chunk = level.getChunk(cp.x, cp.z, ChunkStatus.FULL, false);
         if (chunk == null) {
@@ -94,7 +151,7 @@ public final class TerrainCache {
                     int hn = lz > 0 ? chunk.getHeight(Heightmap.Types.WORLD_SURFACE, lx, lz - 1) : h;
                     MapColor.Brightness b = h > hn ? MapColor.Brightness.HIGH
                             : h < hn ? MapColor.Brightness.LOW : MapColor.Brightness.NORMAL;
-                    color = mc == MapColor.NONE ? 0 : mc.calculateRGBColor(b);
+                    color = mc == MapColor.NONE ? fallback(state, b) : mc.calculateRGBColor(b);
                 }
                 out[lz * 16 + lx] = color;
             }

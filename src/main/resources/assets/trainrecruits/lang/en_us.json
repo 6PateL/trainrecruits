@@ -89,7 +89,7 @@
   "baton.mode.1": "Remove general rank",
   "baton.mode.2": "Assign villager to a gun",
   "baton.mode.3": "Lead a villager",
-  "baton.mode.4": "Supply company (+)",
+  "baton.mode.4": "Add villager to the company (+)",
   "item.trainrecruits.commander_baton.mode": "Mode: %s",
   "msg.trainrecruits.baton_mode_set": "Baton mode: %s",
   "msg.trainrecruits.baton_wrong_target": "This mode works on another kind of target.",
@@ -126,5 +126,9 @@
   "msg.trainrecruits.supply_call_cap": "Golem limit reached: %s/%s.",
   "msg.trainrecruits.supply_call_wait": "Golem on cooldown: %s s.",
   "baton.info.raid.strong_next": "the next raid is REINFORCED",
-  "baton.info.raid.strong_in": "reinforced raid after %s ordinary ones"
+  "baton.info.raid.strong_in": "reinforced raid after %s ordinary ones",
+  "baton.mode.5": "Remember a block to restore",
+  "baton.menu.supply": "Supply company ▸",
+  "baton.menu.back": "◂ Back",
+  "item.trainrecruits.commander_baton.desc4": "Supply company: add a villager (+) or remember blocks to restore (block in off hand)."
 }

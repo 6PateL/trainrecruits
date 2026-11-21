@@ -15,27 +15,51 @@ public class BatonScreen extends Screen {
         this.current = current;
     }
 
+    /** Сторінка підпунктів «Рота забезпечення». */
+    private boolean supplyPage;
+
+    private void modeButton(int mode, int x, int y, int w) {
+        Component label = BatonItem.modeName(mode);
+        if (mode == current) {
+            label = Component.literal("> ").append(label);
+        }
+        addRenderableWidget(Button.builder(label, btn -> {
+            Net.CHANNEL.sendToServer(new Net.BatonMode((byte) mode));
+            this.onClose();
+        }).bounds(x, y, w, 20).build());
+    }
+
     @Override
     protected void init() {
         int w = 200;
         int x = (this.width - w) / 2;
         int y = this.height / 2 - 55;
-        for (int i = 0; i < BatonItem.MODES; i++) {
-            final int mode = i;
-            Component label = BatonItem.modeName(i);
-            if (i == current) {
-                label = Component.literal("> ").append(label);
-            }
-            Button b = Button.builder(label, btn -> {
-                Net.CHANNEL.sendToServer(new Net.BatonMode((byte) mode));
-                this.onClose();
-            }).bounds(x, y + i * 24, w, 20).build();
-            this.addRenderableWidget(b);
+        if (supplyPage) {
+            modeButton(BatonItem.MODE_SUPPLY, x, y, w);
+            modeButton(BatonItem.MODE_MEMORIZE, x, y + 24, w);
+            addRenderableWidget(Button.builder(Component.translatable("baton.menu.back"), btn -> {
+                supplyPage = false;
+                rebuildWidgets();
+            }).bounds(x, y + 56, w, 20).build());
+            return;
         }
+        int row = 0;
+        for (int i = 0; i < BatonItem.MODE_SUPPLY; i++) {
+            modeButton(i, x, y + row++ * 24, w);
+        }
+        boolean inSupply = current == BatonItem.MODE_SUPPLY || current == BatonItem.MODE_MEMORIZE;
+        Component sup = Component.translatable("baton.menu.supply");
+        if (inSupply) {
+            sup = Component.literal("> ").append(sup);
+        }
+        addRenderableWidget(Button.builder(sup, btn -> {
+            supplyPage = true;
+            rebuildWidgets();
+        }).bounds(x, y + row++ * 24, w, 20).build());
         Button info = Button.builder(Component.translatable("baton.mode.info"), btn -> {
             Net.CHANNEL.sendToServer(new Net.InfoRequest());
             this.onClose();
-        }).bounds(x, y + BatonItem.MODES * 24, w, 20).build();
+        }).bounds(x, y + row * 24, w, 20).build();
         this.addRenderableWidget(info);
     }
 

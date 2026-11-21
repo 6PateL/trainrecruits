@@ -16,7 +16,9 @@ public class BatonItem extends Item {
     public static final int MODE_GUN = 2;
     public static final int MODE_LEAD = 3;
     public static final int MODE_SUPPLY = 4;
-    public static final int MODES = 5;
+    /** Рота забезпечення: позначати блоки, які жителі мають відновлювати (працює в Village Fall). */
+    public static final int MODE_MEMORIZE = 5;
+    public static final int MODES = 6;
     private static final String TAG = "tr_mode";
 
     public BatonItem(Properties properties) {
@@ -42,5 +44,6 @@ public class BatonItem extends Item {
         tooltip.add(Component.translatable("item.trainrecruits.commander_baton.desc1"));
         tooltip.add(Component.translatable("item.trainrecruits.commander_baton.desc2"));
         tooltip.add(Component.translatable("item.trainrecruits.commander_baton.desc3"));
+        tooltip.add(Component.translatable("item.trainrecruits.commander_baton.desc4"));
     }
 }
